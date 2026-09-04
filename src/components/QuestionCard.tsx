@@ -112,6 +112,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
   const answeredCount = playersList.filter((p) => Boolean(p.currentAnswer)).length;
   const totalPlayers = playersList.length;
   const allAnswered = totalPlayers > 0 && answeredCount === totalPlayers;
+  const canAdvance = totalPlayers <= 1 || allAnswered;
   const alreadyAnswered = Boolean(currentPlayer?.currentAnswer);
 
   // Sync / Reset on new question round (Chacun son chrono démarre ici)
@@ -361,6 +362,14 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
   };
 
   const handleSkipMap = async () => {
+    if (totalPlayers > 1 && !allAnswered) {
+      return;
+    }
+    sounds.playClick();
+    await nextRoundOrEnd(party.code);
+  };
+
+  const handleForceNext = async () => {
     sounds.playClick();
     await nextRoundOrEnd(party.code);
   };
@@ -695,13 +704,20 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
                   </button>
 
                   {(isHost || totalPlayers <= 1) ? (
-                    <button
-                      onClick={handleSkipMap}
-                      className="flex-1 flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-black text-xs sm:text-sm uppercase tracking-wider py-2.5 rounded-xl shadow-lg transition-all cursor-pointer hover:scale-[1.01]"
-                    >
-                      <span>Question suivante</span>
-                      <ArrowRight className="w-4 h-4 stroke-[2.5]" />
-                    </button>
+                    canAdvance ? (
+                      <button
+                        onClick={handleSkipMap}
+                        className="flex-1 flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-black text-xs sm:text-sm uppercase tracking-wider py-2.5 rounded-xl shadow-lg transition-all cursor-pointer hover:scale-[1.01]"
+                      >
+                        <span>Question suivante</span>
+                        <ArrowRight className="w-4 h-4 stroke-[2.5]" />
+                      </button>
+                    ) : (
+                      <div className="flex-1 flex items-center justify-center gap-1.5 bg-white/10 text-white/60 font-bold text-xs uppercase tracking-wider py-2.5 rounded-xl border border-white/15 select-none">
+                        <Clock className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+                        <span>En attente ({answeredCount}/{totalPlayers})</span>
+                      </div>
+                    )
                   ) : null}
                 </div>
 
@@ -734,14 +750,14 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
                     <p className="text-[11px] text-white/60 text-center leading-tight">
                       {allAnswered
                         ? (isHost
-                            ? 'Tous les joueurs ont répondu ! Cliquez sur "Question suivante" pour continuer.'
+                            ? 'Tous les joueurs ont répondu ! Vous pouvez passer à la question suivante.'
                             : "Tous les joueurs ont répondu ! En attente de l'hôte...")
-                        : `${answeredCount}/${totalPlayers} ont répondu. Chacun son chrono !`}
+                        : `Votre collègue est encore en train de répondre (${answeredCount}/${totalPlayers}). Chacun son chrono !`}
                     </p>
 
                     {isHost && !allAnswered && (
                       <button
-                        onClick={handleSkipMap}
+                        onClick={handleForceNext}
                         className="text-[10px] text-white/40 hover:text-white/80 underline cursor-pointer transition-colors"
                       >
                         Forcer la suite (si un collègue est déconnecté)
@@ -953,7 +969,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
               </div>
 
               <div className="flex items-center gap-2 shrink-0">
-                {(isHost || totalPlayers <= 1) && (
+                {(isHost || totalPlayers <= 1) && canAdvance && (
                   <button
                     onClick={async () => {
                       sounds.playClick();
