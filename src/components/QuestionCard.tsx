@@ -504,8 +504,8 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
                 </div>
 
                 {/* Random Humor Message */}
-                <div className="bg-black/35 border border-white/10 rounded-xl px-3 py-1.5 text-center">
-                  <p className="text-xs sm:text-sm text-white/95 font-semibold italic leading-snug">
+                <div className="bg-black/35 border border-white/10 rounded-xl px-3 py-2 text-center">
+                  <p className="text-xs sm:text-sm text-white/95 font-semibold italic leading-relaxed whitespace-normal break-words">
                     « {punchline} »
                   </p>
                 </div>

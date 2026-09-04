@@ -63,3 +63,61 @@ export function getRandomFailurePunchline(): string {
   const idx = Math.floor(Math.random() * FAILURE_MESSAGES.length);
   return FAILURE_MESSAGES[idx];
 }
+
+export const LEADER_FLATTERING_MESSAGES: string[] = [
+  "Roi/Reine du monde, littéralement.",
+  "T'as explosé la concurrence, chapeau.",
+  "On t'appelle l'Atlas humain, à partir de maintenant.",
+  "T'es sur le toit du monde, et ça se voit.",
+  "Les autres jouent pour la deuxième place, en fait.",
+  "T'as posé ta couronne de capitales sur cette manche.",
+];
+
+export const LAST_PLACE_BITING_MESSAGES: string[] = [
+  "T'es la preuve vivante que la sélection naturelle prend parfois des pauses.",
+  "T'as tellement raté que même le hasard t'a lâché.",
+  "On te propose une carte du monde, t'as réussi à te perdre dans la légende.",
+  "Y'a des chances que le GPS te recommande de rester chez toi.",
+  "T'as fait un sans-faute... dans le mauvais sens.",
+  "Même en fermant les yeux et en pointant au hasard, t'aurais fait mieux.",
+  "T'es dernier, et honnêtement, c'était pas très surprenant.",
+  "On dirait que la géographie et toi, c'est une histoire qui finit toujours mal.",
+];
+
+export function getRandomLeaderPunchline(): string {
+  const idx = Math.floor(Math.random() * LEADER_FLATTERING_MESSAGES.length);
+  return LEADER_FLATTERING_MESSAGES[idx];
+}
+
+export function getRandomLastPlacePunchline(): string {
+  const idx = Math.floor(Math.random() * LAST_PLACE_BITING_MESSAGES.length);
+  return LAST_PLACE_BITING_MESSAGES[idx];
+}
+
+export const RUNNER_UP_MESSAGES: string[] = [
+  "2ème place : tu es officiellement le premier des perdants !",
+  "Si près du but... et pourtant si loin de la gloire.",
+  "La médaille d'argent, c'est comme le bronze mais avec plus de regrets.",
+  "Tu as touché la couronne des yeux, mais pas des mains.",
+  "Bravo pour cette magnifique place de dauphin... sans couronne.",
+  "Presque champion ! Il te manquait juste un coup de pouce du destin.",
+];
+
+export function getRandomRunnerUpPunchline(): string {
+  const idx = Math.floor(Math.random() * RUNNER_UP_MESSAGES.length);
+  return RUNNER_UP_MESSAGES[idx];
+}
+
+export const SOLO_DEFEAT_MESSAGES: string[] = [
+  "Même en jouant tout seul, t'as réussi à perdre face au quiz.",
+  "Le quiz vient de te battre par K.O. technique.",
+  "C'était une tentative... pas glorieuse, mais une tentative.",
+  "Le score pique un peu les yeux, respire un grand coup.",
+  "Rassure-toi, personne d'autre n'a vu ça (sauf nous).",
+];
+
+export function getRandomSoloDefeatPunchline(): string {
+  const idx = Math.floor(Math.random() * SOLO_DEFEAT_MESSAGES.length);
+  return SOLO_DEFEAT_MESSAGES[idx];
+}
+

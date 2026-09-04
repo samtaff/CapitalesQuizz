@@ -1,7 +1,11 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Trophy, X, Crown, Sparkles } from 'lucide-react';
+import { Trophy, X, Crown, Sparkles, Skull } from 'lucide-react';
 import { PartyDoc, Player } from '../types';
+import {
+  getRandomLeaderPunchline,
+  getRandomLastPlacePunchline,
+} from '../utils/humorMessages';
 
 interface LeaderboardModalProps {
   isOpen: boolean;
@@ -27,11 +31,19 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
-  if (!isOpen) return null;
-
   const sortedPlayers: Player[] = (Object.values(party.players || {}) as Player[]).sort(
     (a, b) => b.totalScore - a.totalScore
   );
+
+  const leaderMessage = useMemo(() => {
+    return getRandomLeaderPunchline();
+  }, [party.currentRoundIndex, sortedPlayers[0]?.id]);
+
+  const lastPlaceMessage = useMemo(() => {
+    return getRandomLastPlacePunchline();
+  }, [party.currentRoundIndex, sortedPlayers[sortedPlayers.length - 1]?.id]);
+
+  if (!isOpen) return null;
 
   const formattedRound = String(party.currentRoundIndex + 1).padStart(2, '0');
   const formattedTotal = String(party.questions.length).padStart(2, '0');
@@ -87,78 +99,114 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
           {/* Players List */}
           <div className="flex-1 overflow-y-auto py-4 space-y-2.5 pr-1">
             {sortedPlayers.map((player, index) => {
-              const isLeader = index === 0 && player.totalScore > 0;
+              const isLeader = index === 0;
+              const isLastPlace = sortedPlayers.length > 1 && index === sortedPlayers.length - 1;
               const isCurrent = player.id === currentPlayerId;
               const delta = player.lastRoundDelta || 0;
 
               return (
                 <div
                   key={player.id}
-                  className={`flex items-center justify-between p-3 sm:p-3.5 rounded-2xl border transition-all ${
+                  className={`flex flex-col gap-2 p-3 sm:p-3.5 rounded-2xl border transition-all ${
                     isLeader
-                      ? 'bg-gradient-to-r from-[#FB923C]/20 to-amber-500/10 border-[#FB923C]/60 shadow-lg'
+                      ? 'bg-gradient-to-r from-amber-500/20 via-orange-500/10 to-white/10 border-amber-400/80 shadow-lg ring-1 ring-amber-400/50'
+                      : isLastPlace
+                      ? 'bg-white/5 border-rose-400/30'
                       : isCurrent
                       ? 'bg-white/15 border-white/40 ring-1 ring-white/20'
                       : 'bg-white/5 border-white/10'
                   }`}
                 >
-                  {/* Left: Rank, Avatar, Nickname */}
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
-                    {/* Rank */}
-                    <div className="w-7 flex items-center justify-center font-black text-base text-white/80 shrink-0">
-                      {isLeader ? (
-                        <Crown className="w-5 h-5 text-[#FB923C] fill-[#FB923C] drop-shadow" />
-                      ) : (
-                        <span>#{index + 1}</span>
-                      )}
-                    </div>
-
-                    {/* Avatar */}
-                    <div
-                      className="w-9 h-9 rounded-xl flex items-center justify-center text-white font-black text-sm uppercase shadow border border-white/20 shrink-0"
-                      style={{ backgroundColor: player.color }}
-                    >
-                      {player.nickname.charAt(0)}
-                    </div>
-
-                    {/* Info */}
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="font-bold text-sm sm:text-base text-white truncate">
-                          {player.nickname}
-                        </span>
-                        {isCurrent && (
-                          <span className="text-[10px] bg-white/20 text-white font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wider">
-                            Vous
-                          </span>
+                  {/* Top Row: Rank, Avatar, Nickname & Score */}
+                  <div className="flex items-center justify-between w-full">
+                    {/* Left: Rank, Avatar, Nickname */}
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                      {/* Rank */}
+                      <div className="w-7 flex items-center justify-center font-black text-base text-white/80 shrink-0">
+                        {isLeader ? (
+                          <Crown className="w-5 h-5 text-amber-400 fill-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]" />
+                        ) : isLastPlace ? (
+                          <span className="text-white/40">#{index + 1}</span>
+                        ) : (
+                          <span>#{index + 1}</span>
                         )}
-                        {player.isHost && (
-                          <span className="text-[9px] bg-purple-500/30 text-purple-200 border border-purple-400/30 font-semibold px-1.5 py-0.5 rounded-md">
-                            Hôte
+                      </div>
+
+                      {/* Avatar */}
+                      <div
+                        className={`w-9 h-9 rounded-xl flex items-center justify-center text-white font-black text-sm uppercase shadow border shrink-0 ${
+                          isLeader ? 'border-amber-300 ring-2 ring-amber-400/40' : 'border-white/20'
+                        }`}
+                        style={{ backgroundColor: player.color }}
+                      >
+                        {player.nickname.charAt(0)}
+                      </div>
+
+                      {/* Info */}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-bold text-sm sm:text-base text-white truncate">
+                            {player.nickname}
+                          </span>
+                          {isCurrent && (
+                            <span className="text-[10px] bg-white/20 text-white font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wider">
+                              Vous
+                            </span>
+                          )}
+                          {isLeader && (
+                            <span className="text-[9px] bg-amber-400/25 text-amber-200 border border-amber-400/40 font-black px-1.5 py-0.5 rounded-md uppercase tracking-wider flex items-center gap-1">
+                              <Crown className="w-2.5 h-2.5 fill-amber-300" />
+                              1er
+                            </span>
+                          )}
+                          {player.isHost && (
+                            <span className="text-[9px] bg-purple-500/30 text-purple-200 border border-purple-400/30 font-semibold px-1.5 py-0.5 rounded-md">
+                              Hôte
+                            </span>
+                          )}
+                        </div>
+                        {delta > 0 && (
+                          <span className="text-[11px] text-emerald-400 font-semibold flex items-center gap-1 mt-0.5">
+                            <Sparkles className="w-3 h-3" />+{delta} au dernier tour
                           </span>
                         )}
                       </div>
-                      {delta > 0 && (
-                        <span className="text-[11px] text-emerald-400 font-semibold flex items-center gap-1 mt-0.5">
-                          <Sparkles className="w-3 h-3" />+{delta} au dernier tour
-                        </span>
-                      )}
+                    </div>
+
+                    {/* Right: Score */}
+                    <div className="text-right shrink-0 pl-2">
+                      <p
+                        className={`text-base sm:text-xl font-black ${
+                          isLeader ? 'text-amber-300' : 'text-white'
+                        }`}
+                      >
+                        {player.totalScore.toLocaleString()}
+                      </p>
+                      <p className="text-[10px] uppercase tracking-wider text-white/50 font-bold">
+                        pts
+                      </p>
                     </div>
                   </div>
 
-                  {/* Right: Score */}
-                  <div className="text-right shrink-0 pl-2">
-                    <p
-                      className={`text-base sm:text-xl font-black ${
-                        isLeader ? 'text-[#FB923C]' : 'text-white'
-                      }`}
-                    >
-                      {player.totalScore.toLocaleString()}
-                    </p>
-                    <p className="text-[10px] uppercase tracking-wider text-white/50 font-bold">
-                      pts
-                    </p>
-                  </div>
+                  {/* Full-width Humorous punchline for leader */}
+                  {isLeader && (
+                    <div className="w-full flex items-start gap-1.5 text-xs text-amber-200 font-medium bg-amber-500/15 border border-amber-400/30 px-2.5 py-1.5 rounded-xl">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+                      <p className="italic leading-relaxed whitespace-normal break-words flex-1 text-left">
+                        « {leaderMessage} »
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Full-width Humorous punchline for last place */}
+                  {isLastPlace && (
+                    <div className="w-full flex items-start gap-1.5 text-xs text-rose-200 font-medium bg-rose-500/15 border border-rose-400/30 px-2.5 py-1.5 rounded-xl">
+                      <Skull className="w-3.5 h-3.5 text-rose-400 shrink-0 mt-0.5" />
+                      <p className="italic leading-relaxed whitespace-normal break-words flex-1 text-left">
+                        « {lastPlaceMessage} »
+                      </p>
+                    </div>
+                  )}
                 </div>
               );
             })}
