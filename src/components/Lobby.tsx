@@ -10,8 +10,10 @@ import {
   LogOut,
   X,
   Settings,
+  Dices,
+  Sparkles,
 } from 'lucide-react';
-import { DifficultySelection, PartyDoc, Player } from '../types';
+import { DifficultySelection, GameMode, PartyDoc, Player } from '../types';
 import {
   kickPlayer,
   startPartyGame,
@@ -57,12 +59,17 @@ export const Lobby: React.FC<LobbyProps> = ({
 
   const handleDifficultyChange = async (diff: DifficultySelection) => {
     sounds.playClick();
-    await updatePartySettings(party.code, diff, party.totalRounds);
+    await updatePartySettings(party.code, diff, party.totalRounds, party.gameMode || 'classic');
   };
 
   const handleRoundsChange = async (rounds: number) => {
     sounds.playClick();
-    await updatePartySettings(party.code, party.difficultySetting, rounds);
+    await updatePartySettings(party.code, party.difficultySetting, rounds, party.gameMode || 'classic');
+  };
+
+  const handleGameModeChange = async (mode: GameMode) => {
+    sounds.playClick();
+    await updatePartySettings(party.code, party.difficultySetting, party.totalRounds, mode);
   };
 
   const handleStartGame = async () => {
@@ -165,9 +172,9 @@ export const Lobby: React.FC<LobbyProps> = ({
       </motion.div>
 
       {/* Host Configuration Panel */}
-      {isHost && (
-        <div className="w-full bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-5 shadow-xl">
-          <div className="flex items-center gap-2 text-white font-bold text-sm mb-4">
+      {isHost ? (
+        <div className="w-full bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-5 shadow-xl space-y-4">
+          <div className="flex items-center gap-2 text-white font-bold text-sm">
             <Settings className="w-4 h-4 text-[#FB923C]" />
             <span className="uppercase tracking-wider font-black">Paramètres de la partie</span>
             <span className="text-[10px] font-bold text-white/60 ml-auto bg-white/10 px-2.5 py-1 rounded-full uppercase tracking-wider">
@@ -175,7 +182,74 @@ export const Lobby: React.FC<LobbyProps> = ({
             </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Mode de jeu selection */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs uppercase tracking-widest text-white/70 font-black flex items-center gap-1.5">
+                <Dices className="w-4 h-4 text-amber-400" />
+                <span>Mode de jeu</span>
+              </p>
+              <span className="text-[11px] text-amber-300/90 font-bold bg-amber-400/15 border border-amber-400/25 px-2 py-0.5 rounded-md">
+                {party.gameMode === 'wheel' ? 'Roue équitable par cycle' : 'Tour par tour simultané'}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              {/* Option 1: Classic */}
+              <button
+                type="button"
+                onClick={() => handleGameModeChange('classic')}
+                className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col gap-1 ${
+                  (party.gameMode || 'classic') === 'classic'
+                    ? 'bg-white text-[#1A1443] border-white shadow-lg ring-2 ring-white/30'
+                    : 'bg-[#1A1443]/60 text-white/80 border-white/10 hover:bg-white/10'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black uppercase tracking-wider flex items-center gap-1.5">
+                    <Users className="w-3.5 h-3.5" />
+                    Classique (Tous ensemble)
+                  </span>
+                  {(party.gameMode || 'classic') === 'classic' && (
+                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                  )}
+                </div>
+                <p className={`text-[11px] leading-snug ${
+                  (party.gameMode || 'classic') === 'classic' ? 'text-[#1A1443]/70 font-semibold' : 'text-white/50'
+                }`}>
+                  Tous les joueurs répondent en même temps à chaque question. Chacun son chrono.
+                </p>
+              </button>
+
+              {/* Option 2: Wheel Mode */}
+              <button
+                type="button"
+                onClick={() => handleGameModeChange('wheel')}
+                className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col gap-1 relative overflow-hidden ${
+                  party.gameMode === 'wheel'
+                    ? 'bg-gradient-to-br from-amber-400 to-orange-400 text-[#1A1443] border-amber-300 shadow-xl ring-2 ring-amber-300/50'
+                    : 'bg-[#1A1443]/60 text-white/80 border-white/10 hover:bg-white/10'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black uppercase tracking-wider flex items-center gap-1.5">
+                    <Dices className="w-3.5 h-3.5" />
+                    Mode Roue (Tirage au sort)
+                  </span>
+                  <span className="bg-[#1A1443] text-amber-300 text-[9px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider">
+                    NOUVEAU
+                  </span>
+                </div>
+                <p className={`text-[11px] leading-snug ${
+                  party.gameMode === 'wheel' ? 'text-[#1A1443]/80 font-semibold' : 'text-white/50'
+                }`}>
+                  Une roue tourne avant chaque question ! Équité garantie : un passage par joueur par cycle.
+                </p>
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
             {/* Difficulty selection */}
             <div>
               <p className="text-xs uppercase tracking-widest text-white/60 mb-2 font-bold">
@@ -233,6 +307,26 @@ export const Lobby: React.FC<LobbyProps> = ({
               </div>
             </div>
           </div>
+        </div>
+      ) : (
+        /* Guest Mode Info Card */
+        <div className="w-full bg-white/10 backdrop-blur-md border border-white/15 rounded-2xl p-4 flex items-center justify-between gap-3 text-white">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-white/10 border border-white/15 flex items-center justify-center text-amber-300">
+              {party.gameMode === 'wheel' ? <Dices className="w-5 h-5" /> : <Users className="w-5 h-5" />}
+            </div>
+            <div>
+              <span className="text-xs text-white/60 uppercase tracking-wider font-bold block">
+                Mode de jeu configuré par l'hôte
+              </span>
+              <span className="text-sm font-black uppercase tracking-wide text-white">
+                {party.gameMode === 'wheel' ? 'Mode Roue (Tirage au sort)' : 'Classique (Tous ensemble)'}
+              </span>
+            </div>
+          </div>
+          <span className="text-[11px] font-black uppercase bg-white/15 px-3 py-1 rounded-full border border-white/20">
+            {party.totalRounds} manches • {party.difficultySetting}
+          </span>
         </div>
       )}
 

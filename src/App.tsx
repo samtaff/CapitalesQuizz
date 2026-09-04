@@ -7,6 +7,7 @@ import { QuestionCard } from './components/QuestionCard';
 import { RoundReview } from './components/RoundReview';
 import { Leaderboard } from './components/Leaderboard';
 import { GameOver } from './components/GameOver';
+import { WheelSpin } from './components/WheelSpin';
 import { GameTopBar } from './components/GameTopBar';
 import { LeaderboardModal } from './components/LeaderboardModal';
 import { LeaveConfirmModal } from './components/LeaveConfirmModal';
@@ -139,6 +140,13 @@ export default function App() {
         ) : party.status === 'lobby' ? (
           /* Realtime Lobby Screen */
           <Lobby
+            party={party}
+            currentPlayerId={currentPlayerId}
+            onLeave={() => setShowLeaveModal(true)}
+          />
+        ) : party.status === 'wheel' ? (
+          /* Wheel Lottery Spin Screen */
+          <WheelSpin
             party={party}
             currentPlayerId={currentPlayerId}
             onLeave={() => setShowLeaveModal(true)}

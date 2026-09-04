@@ -3,7 +3,20 @@ export type DifficultySelection = Difficulty | 'mix';
 
 export type ResponseMode = 'cash' | 'carre';
 
-export type GameStatus = 'lobby' | 'question' | 'round_map' | 'leaderboard' | 'game_over';
+export type GameMode = 'classic' | 'wheel';
+
+export type GameStatus = 'lobby' | 'wheel' | 'question' | 'round_map' | 'leaderboard' | 'game_over';
+
+export interface WheelState {
+  activePlayerId: string; // Joueur actif qui doit répondre
+  eligiblePlayerIds: string[]; // Joueurs présents sur la roue pour ce tour
+  remainingPlayerIds: string[]; // Joueurs restants pour les tours suivants du cycle
+  cycleNumber: number; // Numéro du cycle (1, 2, ...)
+  targetPlayerId: string; // Joueur sélectionné par la roue
+  spinTargetAngle: number; // Angle total de rotation en degrés
+  spinStartTime: number; // Horodatage du début de rotation
+  spinDuration: number; // Durée de rotation en ms (ex: 4500ms)
+}
 
 export interface CapitalCoordinates {
   lat: number;
@@ -70,6 +83,8 @@ export interface PartyDoc {
   questions: GameQuestion[];
   players: Record<string, Player>;
   phaseEndTime?: number; // for automated transitions
+  gameMode?: GameMode; // 'classic' ou 'wheel'
+  wheelState?: WheelState; // État de la roue de tirage
 }
 
 export interface LevenshteinEvaluation {

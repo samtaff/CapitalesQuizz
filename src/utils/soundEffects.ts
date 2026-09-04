@@ -169,6 +169,56 @@ class SoundManager {
       osc.stop(ctx.currentTime + 0.04);
     } catch (e) {}
   }
+
+  /**
+   * Clic / cliquetis sec de la roue de loterie à chaque cran
+   */
+  playWheelTick(pitchMultiplier: number = 1) {
+    const ctx = this.getContext();
+    if (!ctx) return;
+    try {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      const baseFreq = 820 * Math.max(0.7, Math.min(1.4, pitchMultiplier));
+      osc.frequency.setValueAtTime(baseFreq, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(baseFreq * 0.5, ctx.currentTime + 0.035);
+
+      gain.gain.setValueAtTime(0.14, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.035);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.035);
+    } catch (e) {}
+  }
+
+  /**
+   * Fanfare / carillon de victoire quand la roue s'arrête sur le joueur
+   */
+  playWheelWin() {
+    const ctx = this.getContext();
+    if (!ctx) return;
+    try {
+      const notes = [440, 554.37, 659.25, 880]; // A4, C#5, E5, A5
+      notes.forEach((freq, idx) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+
+        const start = ctx.currentTime + idx * 0.08;
+        gain.gain.setValueAtTime(0.2, start);
+        gain.gain.exponentialRampToValueAtTime(0.001, start + 0.35);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(start);
+        osc.stop(start + 0.35);
+      });
+    } catch (e) {}
+  }
 }
 
 export const sounds = new SoundManager();

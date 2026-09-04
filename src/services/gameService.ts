@@ -9,11 +9,13 @@ import {
 import { db, ensureAnonymousAuth } from '../firebase';
 import {
   DifficultySelection,
+  GameMode,
   GameStatus,
   PartyDoc,
   Player,
   PlayerRoundAnswer,
   ResponseMode,
+  WheelState,
 } from '../types';
 import { generateQuestions } from '../data/countries';
 
@@ -76,6 +78,7 @@ export async function createParty(
     currentRoundIndex: 0,
     roundStartTime: 0,
     roundDuration: 20, // 20 secondes par manche
+    gameMode: 'classic',
     questions,
     players: {
       [hostId]: hostPlayer,
@@ -139,25 +142,73 @@ export async function joinParty(
 }
 
 /**
+ * Calcule les paramètres de rotation et le joueur tiré pour la Roue (Règle d'équité par cycle)
+ */
+export function computeWheelSpin(
+  eligiblePlayerIds: string[],
+  cycleNumber: number
+): WheelState {
+  if (eligiblePlayerIds.length === 0) {
+    throw new Error('Impossible de lancer la roue sans joueur éligible.');
+  }
+
+  // Sélection aléatoire équiprobable parmi les joueurs du cycle en cours
+  const randomIndex = Math.floor(Math.random() * eligiblePlayerIds.length);
+  const targetPlayerId = eligiblePlayerIds[randomIndex];
+  const remainingPlayerIds = eligiblePlayerIds.filter((id) => id !== targetPlayerId);
+
+  const numSegments = eligiblePlayerIds.length;
+  const sliceAngle = 360 / numSegments;
+  // Le pointeur fixe est en haut à 12h (0°).
+  // La portion i va de i * sliceAngle à (i + 1) * sliceAngle.
+  // Le centre de la portion cible est à (randomIndex + 0.5) * sliceAngle.
+  // Pour amener ce centre à 0° après une rotation horaire de R degrés :
+  // R % 360 = (360 - centre) % 360.
+  const fullRotations = 6; // 6 tours complets pour un effet casino immersif
+  const centerOfSlice = (randomIndex + 0.5) * sliceAngle;
+  // Légère variation aléatoire au sein de la portion (+- 25% de la portion)
+  const jitter = (Math.random() - 0.5) * (sliceAngle * 0.4);
+  const finalAngleOffset = (360 - centerOfSlice + jitter + 360) % 360;
+  const spinTargetAngle = fullRotations * 360 + finalAngleOffset;
+
+  return {
+    activePlayerId: targetPlayerId,
+    eligiblePlayerIds,
+    remainingPlayerIds,
+    cycleNumber,
+    targetPlayerId,
+    spinTargetAngle,
+    spinStartTime: Date.now(),
+    spinDuration: 4500, // 4.5 secondes
+  };
+}
+
+/**
  * Met à jour les paramètres de la partie (par l'hôte)
  */
 export async function updatePartySettings(
   code: string,
   difficultySetting: DifficultySelection,
-  totalRounds: number
+  totalRounds: number,
+  gameMode?: GameMode
 ): Promise<void> {
   const partyRef = doc(db, 'parties', code);
   const questions = generateQuestions(difficultySetting, totalRounds);
 
-  await updateDoc(partyRef, {
+  const updates: Record<string, any> = {
     difficultySetting,
     totalRounds,
     questions,
-  });
+  };
+  if (gameMode) {
+    updates.gameMode = gameMode;
+  }
+
+  await updateDoc(partyRef, updates);
 }
 
 /**
- * Lance la partie (passage du lobby à la 1re question)
+ * Lance la partie (passage du lobby à la 1re question ou 1er tirage de roue)
  */
 export async function startPartyGame(code: string): Promise<void> {
   const partyRef = doc(db, 'parties', code);
@@ -174,12 +225,38 @@ export async function startPartyGame(code: string): Promise<void> {
     resetPlayers[`players.${pId}.selectedMode`] = null;
   });
 
+  const isWheelMode = party.gameMode === 'wheel';
+  const allPlayerIds = Object.keys(party.players || {});
+
+  if (isWheelMode && allPlayerIds.length > 0) {
+    const wheelState = computeWheelSpin(allPlayerIds, 1);
+    await updateDoc(partyRef, {
+      status: 'wheel',
+      currentRoundIndex: 0,
+      roundStartTime: 0,
+      wheelState,
+      ...resetPlayers,
+    });
+  } else {
+    await updateDoc(partyRef, {
+      status: 'question',
+      currentRoundIndex: 0,
+      roundStartTime: Date.now(),
+      roundDuration: 20,
+      ...resetPlayers,
+    });
+  }
+}
+
+/**
+ * Démarre la question après la fin de l'animation de la roue
+ */
+export async function startWheelQuestion(code: string): Promise<void> {
+  const partyRef = doc(db, 'parties', code);
   await updateDoc(partyRef, {
     status: 'question',
-    currentRoundIndex: 0,
     roundStartTime: Date.now(),
     roundDuration: 20,
-    ...resetPlayers,
   });
 }
 
@@ -288,13 +365,40 @@ export async function nextRoundOrEnd(code: string): Promise<void> {
       resetPlayers[`players.${pId}.selectedMode`] = null;
     });
 
-    await updateDoc(partyRef, {
-      status: 'question',
-      currentRoundIndex: nextRoundIndex,
-      roundStartTime: Date.now(),
-      roundDuration: 20,
-      ...resetPlayers,
-    });
+    const isWheelMode = party.gameMode === 'wheel';
+    const presentPlayerIds = Object.keys(party.players || {});
+
+    if (isWheelMode && presentPlayerIds.length > 0) {
+      // Règle d'équité : vérifier les joueurs restants dans le cycle
+      let remaining = (party.wheelState?.remainingPlayerIds || []).filter((id) =>
+        presentPlayerIds.includes(id)
+      );
+      let cycle = party.wheelState?.cycleNumber || 1;
+
+      // Si tous les joueurs présents sont passés dans le cycle, reconstituer la roue avec tout le monde
+      if (remaining.length === 0) {
+        remaining = [...presentPlayerIds];
+        cycle += 1;
+      }
+
+      const wheelState = computeWheelSpin(remaining, cycle);
+
+      await updateDoc(partyRef, {
+        status: 'wheel',
+        currentRoundIndex: nextRoundIndex,
+        roundStartTime: 0,
+        wheelState,
+        ...resetPlayers,
+      });
+    } else {
+      await updateDoc(partyRef, {
+        status: 'question',
+        currentRoundIndex: nextRoundIndex,
+        roundStartTime: Date.now(),
+        roundDuration: 20,
+        ...resetPlayers,
+      });
+    }
   }
 }
 

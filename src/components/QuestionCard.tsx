@@ -107,12 +107,21 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
 
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Wheel Mode helpers
+  const isWheelMode = party.gameMode === 'wheel';
+  const activePlayerId = party.wheelState?.activePlayerId;
+  const activePlayer = activePlayerId ? party.players?.[activePlayerId] : undefined;
+  const isActivePlayer = !isWheelMode || activePlayerId === currentPlayerId;
+
   // Players list and answered counts
   const playersList = Object.values(party.players || {}) as Player[];
   const answeredCount = playersList.filter((p) => Boolean(p.currentAnswer)).length;
   const totalPlayers = playersList.length;
   const allAnswered = totalPlayers > 0 && answeredCount === totalPlayers;
-  const canAdvance = totalPlayers <= 1 || allAnswered;
+  // In classic mode: all players need to answer. In wheel mode: only the active player needs to answer!
+  const canAdvance = isWheelMode
+    ? Boolean(activePlayer?.currentAnswer)
+    : totalPlayers <= 1 || allAnswered;
   const alreadyAnswered = Boolean(currentPlayer?.currentAnswer);
 
   // Sync / Reset on new question round (Chacun son chrono démarre ici)
@@ -134,6 +143,8 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
   // Timer interval ticking every 250ms (compte uniquement pour ce joueur)
   useEffect(() => {
     if (party.status !== 'question') return;
+    // In wheel mode, spectators don't tick individual timer
+    if (isWheelMode && !isActivePlayer) return;
     if (alreadyAnswered || hasSubmittedLocally) return;
 
     const interval = setInterval(() => {
@@ -154,11 +165,13 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
     }, 250);
 
     return () => clearInterval(interval);
-  }, [party.status, alreadyAnswered, hasSubmittedLocally, roundDuration]);
+  }, [party.status, alreadyAnswered, hasSubmittedLocally, roundDuration, isWheelMode, isActivePlayer]);
 
   // Handle timeout when this player's time runs out (0 seconds)
   useEffect(() => {
     if (party.status !== 'question') return;
+    // In wheel mode, only the active player can time out
+    if (isWheelMode && !isActivePlayer) return;
 
     if (timeLeft === 0 && !hasSubmittedLocally && !alreadyAnswered) {
       setHasSubmittedLocally(true);
@@ -182,6 +195,8 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
     alreadyAnswered,
     party.code,
     currentPlayerId,
+    isWheelMode,
+    isActivePlayer,
   ]);
 
   // Difficulty accent theme
@@ -362,7 +377,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
   };
 
   const handleSkipMap = async () => {
-    if (totalPlayers > 1 && !allAnswered) {
+    if (!canAdvance) {
       return;
     }
     sounds.playClick();
@@ -419,8 +434,18 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
           />
         </div>
 
-        {/* Right: Real-time Players Answered count */}
-        {totalPlayers > 1 ? (
+        {/* Right: Real-time Players Answered count or Wheel indicator */}
+        {isWheelMode ? (
+          <div className="flex items-center gap-1.5 bg-amber-400/15 px-2.5 sm:px-3 py-1 rounded-xl border border-amber-400/30 text-amber-200 text-[11px] sm:text-xs font-black shrink-0">
+            <span
+              className="w-2.5 h-2.5 rounded-full border border-white/60 shrink-0"
+              style={{ backgroundColor: activePlayer?.color || '#F59E0B' }}
+            />
+            <span className="truncate max-w-[120px]">
+              {isActivePlayer ? '🎯 Votre tour' : `🎡 ${activePlayer?.nickname || 'Tour'}`}
+            </span>
+          </div>
+        ) : totalPlayers > 1 ? (
           <div className="flex items-center gap-1.5 bg-white/10 px-2.5 sm:px-3 py-1 rounded-xl border border-white/15 text-white/80 text-[11px] sm:text-xs font-bold shrink-0">
             <span
               className={`w-2 h-2 rounded-full ${
@@ -778,7 +803,130 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
               </div>
             </motion.div>
           );
-        })() : selectedMode === null ? (
+        })() : isWheelMode && !isActivePlayer ? (
+          /* State: Spectator Screen in Wheel Mode */
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="w-full flex flex-col items-center gap-3 max-w-xl bg-[#1e174b]/85 border border-amber-400/30 backdrop-blur-md rounded-2xl p-3.5 sm:p-4 shadow-xl"
+          >
+            {/* Top spectator header */}
+            <div className="flex items-center justify-between w-full pb-2 border-b border-white/10">
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-white font-black text-xs border border-white/70 shadow-sm uppercase"
+                  style={{ backgroundColor: activePlayer?.color || '#F59E0B' }}
+                >
+                  {activePlayer?.nickname?.charAt(0) || '?'}
+                </div>
+                <div>
+                  <span className="text-[10px] text-amber-300/90 font-bold uppercase tracking-wider block">
+                    Joueur sélectionné par la roue
+                  </span>
+                  <span className="text-white font-black text-xs sm:text-sm uppercase tracking-tight">
+                    {activePlayer?.nickname || 'Joueur en lice'}
+                  </span>
+                </div>
+              </div>
+              <span className="bg-amber-400/20 text-amber-300 border border-amber-400/30 text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase">
+                Spectateur
+              </span>
+            </div>
+
+            {/* Active player's progress */}
+            {activePlayer?.currentAnswer ? (
+              <div className="w-full flex flex-col gap-2">
+                <div
+                  className={`w-full rounded-xl p-3 border flex items-center justify-between ${
+                    activePlayer.currentAnswer.isCorrect
+                      ? 'bg-emerald-950/80 border-emerald-400/60 text-emerald-200'
+                      : 'bg-rose-950/80 border-rose-400/60 text-rose-200'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    {activePlayer.currentAnswer.isCorrect ? (
+                      <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+                    ) : (
+                      <XCircle className="w-5 h-5 text-rose-400 shrink-0" />
+                    )}
+                    <div>
+                      <p className="text-white font-black text-xs sm:text-sm uppercase">
+                        {activePlayer.currentAnswer.isCorrect ? 'Bonne réponse !' : 'Mauvaise réponse'}
+                      </p>
+                      <p className="text-[11px] text-white/70 font-semibold">
+                        Réponse : « {activePlayer.currentAnswer.answer} » (Mode {activePlayer.currentAnswer.mode.toUpperCase()})
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-white font-black text-xs sm:text-sm bg-black/40 px-2.5 py-1 rounded-lg border border-white/20">
+                    +{activePlayer.currentAnswer.pointsEarned} pts
+                  </span>
+                </div>
+
+                {/* Show the correct capital */}
+                <div className="w-full bg-emerald-950/95 border border-emerald-400/40 rounded-xl px-3 py-2 flex items-center justify-between text-xs shadow-md">
+                  <span className="text-emerald-200 font-bold uppercase text-[11px]">
+                    Capitale officielle :
+                  </span>
+                  <span className="text-white font-black text-xs sm:text-sm tracking-wider uppercase bg-emerald-600 px-2.5 py-0.5 rounded border border-emerald-300">
+                    {question.capital}
+                  </span>
+                </div>
+
+                {/* Punchline */}
+                {activePlayer.currentAnswer.punchline && (
+                  <div className="bg-black/30 border border-white/10 rounded-xl px-3 py-1.5 text-center">
+                    <p className="text-xs text-white/90 italic">
+                      « {activePlayer.currentAnswer.punchline} »
+                    </p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="w-full bg-black/30 border border-white/10 rounded-xl p-3.5 flex items-center gap-3">
+                <div className="w-5 h-5 rounded-full border-2 border-amber-400 border-t-transparent animate-spin shrink-0" />
+                <div className="text-left">
+                  <p className="text-xs sm:text-sm text-white/90 font-medium">
+                    <strong className="text-amber-300">{activePlayer?.nickname}</strong> est en train de répondre...
+                  </p>
+                  <p className="text-[11px] text-white/50">
+                    Il choisit entre Cash (saisie libre) et Carré (4 options).
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Action buttons for spectators / host */}
+            <div className="w-full flex items-center gap-2 pt-1 border-t border-white/10">
+              <button
+                onClick={handleAdvanceToMap}
+                className="flex-1 flex items-center justify-center gap-1.5 bg-[#FB923C] hover:brightness-110 active:scale-95 text-[#1A1443] font-black text-xs uppercase tracking-wider py-2.5 rounded-xl shadow-lg transition-all cursor-pointer"
+              >
+                <MapPin className="w-3.5 h-3.5" />
+                <span>Regarder la carte</span>
+              </button>
+
+              {isHost && (
+                canAdvance ? (
+                  <button
+                    onClick={handleSkipMap}
+                    className="flex-1 flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-black text-xs uppercase tracking-wider py-2.5 rounded-xl shadow-lg transition-all cursor-pointer"
+                  >
+                    <span>Question suivante</span>
+                    <ArrowRight className="w-3.5 h-3.5 stroke-[2.5]" />
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleForceNext}
+                    className="text-[10px] text-white/50 hover:text-white/80 underline px-2 py-1 cursor-pointer"
+                  >
+                    Forcer la suite
+                  </button>
+                )
+              )}
+            </div>
+          </motion.div>
+        ) : selectedMode === null ? (
           /* State 2: REQUIRED FIRST STEP -> Choose between CASH and CARRÉ (Zero scroll!) */
           <motion.div
             initial={{ opacity: 0, y: 10 }}
