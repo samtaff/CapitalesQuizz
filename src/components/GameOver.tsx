@@ -8,8 +8,10 @@ import {
   getRandomLeaderPunchline,
   getRandomLastPlacePunchline,
   getRandomRunnerUpPunchline,
+  getRandomBronzePunchline,
   getRandomSoloDefeatPunchline,
   getRandomFailurePunchline,
+  getPlayerRankingPunchline,
 } from '../utils/humorMessages';
 
 interface GameOverProps {
@@ -34,7 +36,7 @@ export const GameOver: React.FC<GameOverProps> = ({
   const second = rankedPlayers[1];
   const third = rankedPlayers[2];
   const lastPlayer =
-    rankedPlayers.length > 1
+    rankedPlayers.length > 2
       ? rankedPlayers[rankedPlayers.length - 1]
       : winner?.totalScore === 0
       ? winner
@@ -48,18 +50,24 @@ export const GameOver: React.FC<GameOverProps> = ({
   // Did I win or lose?
   const isSoloDefeat = isSolo && (winner ? winner.totalScore === 0 : true);
   const didIWin = myIndex === 0 && !isSoloDefeat;
-  const isMyLastPlace = isSolo ? isSoloDefeat : myIndex === rankedPlayers.length - 1;
-  const isMyRunnerUp = !isSolo && (myIndex === 1 || myIndex === 2);
+  // If only 2 players, 2nd place is RUNNER UP with silver medal, NOT last place wooden spoon!
+  const isMySecond = !isSolo && myIndex === 1;
+  const isMyThird = !isSolo && myIndex === 2;
+  const isMyLastPlace = isSolo ? isSoloDefeat : (rankedPlayers.length > 2 && myIndex === rankedPlayers.length - 1);
 
-  // Stable punchlines
+  // Stable punchlines per player ID
   const winnerPunchline = useMemo(() => getRandomLeaderPunchline(), [winner?.id]);
-  const lastPlacePunchline = useMemo(
-    () => getRandomLastPlacePunchline(),
-    [lastPlayer?.id]
-  );
   const runnerUpPunchline = useMemo(
     () => getRandomRunnerUpPunchline(),
     [second?.id]
+  );
+  const bronzePunchline = useMemo(
+    () => getRandomBronzePunchline(),
+    [third?.id]
+  );
+  const lastPlacePunchline = useMemo(
+    () => getRandomLastPlacePunchline(),
+    [lastPlayer?.id]
   );
   const soloDefeatPunchline = useMemo(
     () => getRandomSoloDefeatPunchline(),
@@ -70,22 +78,25 @@ export const GameOver: React.FC<GameOverProps> = ({
     [currentPlayerId]
   );
 
-  // Which punchline is addressed directly to ME ("lorsque je gagne ou je perds")
+  // Which punchline is addressed directly to ME
   const myVerdictPunchline = useMemo(() => {
     if (didIWin) return winnerPunchline;
     if (isSoloDefeat) return soloDefeatPunchline;
+    if (isMySecond) return runnerUpPunchline;
+    if (isMyThird) return bronzePunchline;
     if (isMyLastPlace) return lastPlacePunchline;
-    if (isMyRunnerUp) return runnerUpPunchline;
     return myFailurePunchline;
   }, [
     didIWin,
     isSoloDefeat,
+    isMySecond,
+    isMyThird,
     isMyLastPlace,
-    isMyRunnerUp,
     winnerPunchline,
     soloDefeatPunchline,
-    lastPlacePunchline,
     runnerUpPunchline,
+    bronzePunchline,
+    lastPlacePunchline,
     myFailurePunchline,
   ]);
 
@@ -114,7 +125,7 @@ export const GameOver: React.FC<GameOverProps> = ({
         </h2>
       </motion.div>
 
-      {/* PERSONAL VERDICT BANNER (Unmissable card telling the player if they won or lost) */}
+      {/* PERSONAL VERDICT BANNER */}
       <motion.div
         initial={{ y: 15, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -122,10 +133,12 @@ export const GameOver: React.FC<GameOverProps> = ({
         className={`w-full max-w-xl p-4 sm:p-5 rounded-2xl shadow-2xl flex flex-col items-center gap-2 text-center border-2 ${
           didIWin
             ? 'bg-gradient-to-r from-amber-500/25 via-orange-500/20 to-amber-500/25 border-amber-400 shadow-amber-500/20 ring-2 ring-amber-400/40'
+            : isMySecond
+            ? 'bg-gradient-to-r from-slate-400/25 via-indigo-500/20 to-slate-400/25 border-slate-300 shadow-slate-400/20 ring-2 ring-slate-300/40'
+            : isMyThird
+            ? 'bg-gradient-to-r from-amber-700/25 via-orange-700/20 to-amber-700/25 border-amber-600 shadow-amber-700/20 ring-2 ring-amber-600/40'
             : isMyLastPlace
             ? 'bg-gradient-to-r from-rose-500/25 via-pink-500/20 to-rose-500/25 border-rose-400 shadow-rose-500/20 ring-2 ring-rose-400/40'
-            : isMyRunnerUp
-            ? 'bg-gradient-to-r from-indigo-500/25 via-purple-500/20 to-indigo-500/25 border-indigo-400 shadow-indigo-500/20 ring-1 ring-indigo-400/40'
             : 'bg-gradient-to-r from-purple-500/20 via-slate-500/20 to-purple-500/20 border-purple-400/60 shadow-purple-500/10'
         }`}
       >
@@ -136,17 +149,20 @@ export const GameOver: React.FC<GameOverProps> = ({
               <Crown className="w-6 h-6 fill-amber-400 text-amber-300 drop-shadow" />
               <span className="text-amber-300">🏆 VICTOIRE ÉCLATANTE ! TU AS GAGNÉ !</span>
             </>
+          ) : isMySecond ? (
+            <>
+              <Medal className="w-6 h-6 text-slate-200 drop-shadow" />
+              <span className="text-slate-200">🥈 MÉDAILLE D'ARGENT ! 2ÈME DU PODIUM</span>
+            </>
+          ) : isMyThird ? (
+            <>
+              <Medal className="w-6 h-6 text-amber-500 drop-shadow" />
+              <span className="text-amber-400">🥉 MÉDAILLE DE BRONZE ! SUR LE PODIUM</span>
+            </>
           ) : isMyLastPlace ? (
             <>
               <Skull className="w-6 h-6 text-rose-400 drop-shadow" />
-              <span className="text-rose-300">💀 DÉFAITE CUISANTE ! TU TERMINES DERNIER !</span>
-            </>
-          ) : isMyRunnerUp ? (
-            <>
-              <Medal className="w-6 h-6 text-indigo-300 drop-shadow" />
-              <span className="text-indigo-300">
-                {myRank === 2 ? '🥈 MÉDAILLE D\'ARGENT (2ème)' : '🥉 MÉDAILLE DE BRONZE (3ème)'} !
-              </span>
+              <span className="text-rose-300">💀 DÉFAITE CUISANTE ! CUILLÈRE DE BOIS</span>
             </>
           ) : (
             <>
@@ -165,42 +181,53 @@ export const GameOver: React.FC<GameOverProps> = ({
               Bravo <span className="text-amber-300 font-black">{myPlayer?.nickname || 'Champion'}</span>, tu domines le classement avec{' '}
               <span className="text-amber-300 font-black">{myPlayer?.totalScore || 0} pts</span> !
             </>
+          ) : isMySecond ? (
+            <>
+              Magnifique <span className="text-slate-200 font-black">{myPlayer?.nickname}</span> ! Tu es sur la 2ème marche du podium avec{' '}
+              <span className="text-slate-200 font-black">{myPlayer?.totalScore || 0} pts</span>.
+            </>
+          ) : isMyThird ? (
+            <>
+              Bravo <span className="text-amber-400 font-black">{myPlayer?.nickname}</span> ! Tu décroches la 3ème place sur le podium avec{' '}
+              <span className="text-amber-400 font-black">{myPlayer?.totalScore || 0} pts</span>.
+            </>
           ) : isMyLastPlace ? (
             <>
               Aïe <span className="text-rose-300 font-black">{myPlayer?.nickname}</span>, c'est la douche froide... Tu finis bon dernier avec{' '}
               <span className="text-rose-300 font-black">{myPlayer?.totalScore || 0} pts</span>.
             </>
-          ) : isMyRunnerUp ? (
-            <>
-              Si près du trône <span className="text-indigo-200 font-black">{myPlayer?.nickname}</span> ! Tu es sur le podium avec{' '}
-              <span className="text-indigo-300 font-black">{myPlayer?.totalScore || 0} pts</span>.
-            </>
           ) : (
             <>
-              Pas de podium pour toi cette fois,{' '}
-              <span className="text-purple-200 font-black">{myPlayer?.nickname}</span> ({myPlayer?.totalScore || 0} pts).
+              Bien joué <span className="text-purple-200 font-black">{myPlayer?.nickname}</span> ! Belle partie avec{' '}
+              <span className="text-purple-200 font-black">{myPlayer?.totalScore || 0} pts</span>.
             </>
           )}
         </p>
 
-        {/* The Humor Punchline (100% visible, wide, readable) */}
+        {/* The Humor Punchline */}
         <div
           className={`w-full mt-1 px-3.5 py-2.5 rounded-xl border flex items-start justify-center gap-2 ${
             didIWin
               ? 'bg-amber-400/15 border-amber-400/40 text-amber-100'
+              : isMySecond
+              ? 'bg-slate-400/15 border-slate-400/40 text-slate-100'
+              : isMyThird
+              ? 'bg-amber-800/25 border-amber-700/40 text-amber-100'
               : isMyLastPlace
               ? 'bg-rose-500/15 border-rose-400/40 text-rose-100'
-              : isMyRunnerUp
-              ? 'bg-indigo-500/15 border-indigo-400/40 text-indigo-100'
               : 'bg-purple-500/15 border-purple-400/40 text-purple-100'
           }`}
         >
           {didIWin ? (
             <Sparkles className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+          ) : isMySecond ? (
+            <Medal className="w-4 h-4 text-slate-300 shrink-0 mt-0.5" />
+          ) : isMyThird ? (
+            <Medal className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
           ) : isMyLastPlace ? (
             <Skull className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
           ) : (
-            <Sparkles className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
+            <Sparkles className="w-4 h-4 text-purple-300 shrink-0 mt-0.5" />
           )}
           <p className="text-xs sm:text-sm font-medium italic whitespace-normal break-words leading-relaxed text-center">
             « {myVerdictPunchline} »
@@ -216,7 +243,7 @@ export const GameOver: React.FC<GameOverProps> = ({
             initial={{ y: 50, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.3 }}
-            className="flex flex-col items-center"
+            className="flex flex-col items-center min-w-0"
           >
             <div
               className="w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center text-white font-black text-xl shadow-lg border-2 border-slate-300 relative mb-2"
@@ -235,8 +262,8 @@ export const GameOver: React.FC<GameOverProps> = ({
             </span>
 
             {/* Podium phrase under 2nd place */}
-            <div className="mb-2 px-2 py-1 bg-slate-400/20 border border-slate-400/30 rounded-xl text-[10px] text-slate-200 font-medium italic text-center w-full shadow-sm">
-              <span className="line-clamp-2 leading-tight">« {runnerUpPunchline} »</span>
+            <div className="mb-2 px-2 py-1.5 bg-slate-400/20 border border-slate-400/35 rounded-xl text-[10px] sm:text-xs text-slate-200 font-medium italic text-center w-full shadow-sm">
+              <span className="leading-snug block break-words">« {runnerUpPunchline} »</span>
             </div>
 
             <div className="w-full h-28 sm:h-36 bg-gradient-to-b from-slate-300/30 to-[#1A1443] rounded-t-2xl border-t-2 border-slate-300/60 flex items-center justify-center">
@@ -253,7 +280,7 @@ export const GameOver: React.FC<GameOverProps> = ({
             initial={{ y: 50, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.1 }}
-            className="flex flex-col items-center"
+            className="flex flex-col items-center min-w-0"
           >
             <div className="relative mb-2">
               <motion.div
@@ -278,8 +305,8 @@ export const GameOver: React.FC<GameOverProps> = ({
             </span>
 
             {/* Podium phrase under 1st place */}
-            <div className="mb-2 px-2 py-1 bg-amber-400/25 border border-amber-400/40 rounded-xl text-[10px] sm:text-[11px] text-amber-200 font-medium italic text-center w-full shadow-sm">
-              <span className="line-clamp-2 leading-tight">« {winnerPunchline} »</span>
+            <div className="mb-2 px-2 py-1.5 bg-amber-400/25 border border-amber-400/40 rounded-xl text-[10px] sm:text-xs text-amber-200 font-medium italic text-center w-full shadow-sm">
+              <span className="leading-snug block break-words">« {winnerPunchline} »</span>
             </div>
 
             <div className="w-full h-40 sm:h-48 bg-gradient-to-b from-[#FB923C]/40 to-[#1A1443] rounded-t-2xl border-t-3 border-[#FB923C] flex items-center justify-center shadow-lg shadow-[#FB923C]/20">
@@ -294,7 +321,7 @@ export const GameOver: React.FC<GameOverProps> = ({
             initial={{ y: 50, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.5 }}
-            className="flex flex-col items-center"
+            className="flex flex-col items-center min-w-0"
           >
             <div
               className="w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center text-white font-black text-lg shadow-lg border-2 border-amber-700 relative mb-2"
@@ -312,9 +339,9 @@ export const GameOver: React.FC<GameOverProps> = ({
               {third.totalScore} pts
             </span>
 
-            {/* Podium badge 3rd place */}
-            <div className="mb-2 px-2 py-1 bg-amber-800/30 border border-amber-700/40 rounded-xl text-[10px] text-amber-200 font-medium italic text-center w-full shadow-sm">
-              <span className="leading-tight block">Podium !</span>
+            {/* Podium phrase under 3rd place */}
+            <div className="mb-2 px-2 py-1.5 bg-amber-800/30 border border-amber-700/40 rounded-xl text-[10px] sm:text-xs text-amber-200 font-medium italic text-center w-full shadow-sm">
+              <span className="leading-snug block break-words">« {bronzePunchline} »</span>
             </div>
 
             <div className="w-full h-20 sm:h-28 bg-gradient-to-b from-amber-700/30 to-[#1A1443] rounded-t-2xl border-t-2 border-amber-700/60 flex items-center justify-center">
@@ -326,8 +353,8 @@ export const GameOver: React.FC<GameOverProps> = ({
         )}
       </div>
 
-      {/* DEDICATED LAST PLACE CARD (Cuillère de bois) when playing multiplayer */}
-      {lastPlayer && rankedPlayers.length > 1 && (
+      {/* DEDICATED LAST PLACE CARD (Cuillère de bois) when playing multiplayer (3+ players) */}
+      {lastPlayer && rankedPlayers.length > 2 && (
         <motion.div
           initial={{ y: 15, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -364,12 +391,21 @@ export const GameOver: React.FC<GameOverProps> = ({
           Tous les scores
         </p>
 
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2.5">
           {rankedPlayers.map((player, idx) => {
             const isLeader = idx === 0;
-            const isLastPlace =
-              rankedPlayers.length > 1 && idx === rankedPlayers.length - 1;
+            const isSecondPlace = idx === 1;
+            const isThirdPlace = idx === 2;
+            const isLastPlaceRow =
+              rankedPlayers.length > 2 && idx === rankedPlayers.length - 1;
             const isCurrent = player.id === currentPlayerId;
+
+            // Stable tailored punchline for EVERY player
+            const playerPunchline = getPlayerRankingPunchline(
+              idx + 1,
+              rankedPlayers.length,
+              player.id
+            );
 
             return (
               <div
@@ -378,12 +414,20 @@ export const GameOver: React.FC<GameOverProps> = ({
                   isCurrent
                     ? isLeader
                       ? 'bg-gradient-to-r from-amber-500/25 via-orange-500/15 to-white/10 border-amber-400 shadow-md ring-2 ring-amber-400'
-                      : isLastPlace
+                      : isSecondPlace
+                      ? 'bg-gradient-to-r from-slate-400/25 via-indigo-500/15 to-white/10 border-slate-300 shadow-md ring-2 ring-slate-300'
+                      : isThirdPlace
+                      ? 'bg-gradient-to-r from-amber-700/25 via-orange-700/15 to-white/10 border-amber-600 shadow-md ring-2 ring-amber-600'
+                      : isLastPlaceRow
                       ? 'bg-gradient-to-r from-rose-500/25 via-pink-500/15 to-white/10 border-rose-400 shadow-md ring-2 ring-rose-400'
                       : 'bg-white/15 border-purple-400 ring-2 ring-purple-400/60'
                     : isLeader
                     ? 'bg-gradient-to-r from-amber-500/20 via-orange-500/10 to-white/10 border-amber-400/80 shadow-md ring-1 ring-amber-400/40'
-                    : isLastPlace
+                    : isSecondPlace
+                    ? 'bg-white/10 border-slate-400/40'
+                    : isThirdPlace
+                    ? 'bg-white/10 border-amber-700/40'
+                    : isLastPlaceRow
                     ? 'bg-white/5 border-rose-400/30'
                     : 'bg-white/5 border-white/10'
                 }`}
@@ -393,6 +437,10 @@ export const GameOver: React.FC<GameOverProps> = ({
                     <span className="w-6 font-black text-xs text-white/60 shrink-0">
                       {isLeader ? (
                         <Crown className="w-4 h-4 text-amber-400 fill-amber-400 inline" />
+                      ) : isSecondPlace ? (
+                        <Medal className="w-4 h-4 text-slate-300 inline" />
+                      ) : isThirdPlace ? (
+                        <Medal className="w-4 h-4 text-amber-600 inline" />
                       ) : (
                         `#${idx + 1}`
                       )}
@@ -401,6 +449,10 @@ export const GameOver: React.FC<GameOverProps> = ({
                       className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-xs border shrink-0 ${
                         isLeader
                           ? 'border-amber-300 ring-1 ring-amber-400/50'
+                          : isSecondPlace
+                          ? 'border-slate-300'
+                          : isThirdPlace
+                          ? 'border-amber-600'
                           : 'border-[#1A1443]'
                       }`}
                       style={{ backgroundColor: player.color }}
@@ -421,32 +473,42 @@ export const GameOver: React.FC<GameOverProps> = ({
 
                   <span
                     className={`font-black text-sm sm:text-base shrink-0 pl-2 ${
-                      isLeader ? 'text-amber-300' : 'text-white'
+                      isLeader ? 'text-amber-300' : isSecondPlace ? 'text-slate-200' : isThirdPlace ? 'text-amber-400' : 'text-white'
                     }`}
                   >
                     {player.totalScore} pts
                   </span>
                 </div>
 
-                {/* Flattering punchline for winner */}
-                {isLeader && (
-                  <div className="w-full flex items-start gap-1.5 text-xs text-amber-200 font-medium bg-amber-500/15 border border-amber-400/30 px-2.5 py-1.5 rounded-xl">
+                {/* Tailored punchline for EVERY player in the scoreboard */}
+                <div
+                  className={`w-full flex items-start gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-xl border ${
+                    isLeader
+                      ? 'bg-amber-500/15 border-amber-400/30 text-amber-200'
+                      : isSecondPlace
+                      ? 'bg-slate-400/15 border-slate-400/35 text-slate-200'
+                      : isThirdPlace
+                      ? 'bg-amber-800/20 border-amber-700/35 text-amber-200'
+                      : isLastPlaceRow
+                      ? 'bg-rose-500/15 border-rose-400/30 text-rose-200'
+                      : 'bg-purple-500/15 border-purple-400/25 text-purple-200'
+                  }`}
+                >
+                  {isLeader ? (
                     <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
-                    <p className="italic leading-relaxed whitespace-normal break-words flex-1 text-left">
-                      « {winnerPunchline} »
-                    </p>
-                  </div>
-                )}
-
-                {/* Biting punchline for last place */}
-                {isLastPlace && (
-                  <div className="w-full flex items-start gap-1.5 text-xs text-rose-200 font-medium bg-rose-500/15 border border-rose-400/30 px-2.5 py-1.5 rounded-xl">
+                  ) : isSecondPlace ? (
+                    <Medal className="w-3.5 h-3.5 text-slate-300 shrink-0 mt-0.5" />
+                  ) : isThirdPlace ? (
+                    <Medal className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
+                  ) : isLastPlaceRow ? (
                     <Skull className="w-3.5 h-3.5 text-rose-400 shrink-0 mt-0.5" />
-                    <p className="italic leading-relaxed whitespace-normal break-words flex-1 text-left">
-                      « {lastPlacePunchline} »
-                    </p>
-                  </div>
-                )}
+                  ) : (
+                    <Sparkles className="w-3.5 h-3.5 text-purple-300 shrink-0 mt-0.5" />
+                  )}
+                  <p className="italic leading-relaxed whitespace-normal break-words flex-1 text-left">
+                    « {playerPunchline} »
+                  </p>
+                </div>
               </div>
             );
           })}

@@ -121,3 +121,69 @@ export function getRandomSoloDefeatPunchline(): string {
   return SOLO_DEFEAT_MESSAGES[idx];
 }
 
+export const BRONZE_MESSAGES: string[] = [
+  "3ème place : tu montes sur la boîte, c'est le principal !",
+  "La médaille de bronze brille tout autant avec un peu d'imagination.",
+  "Sur le podium in extremis, beau rattrapage !",
+  "Tu sauves l'honneur avec cette 3ème marche, respect.",
+  "Le champagne a le même goût sur la 3ème marche !",
+  "Tu repars avec une médaille, c'est tout ce qui compte.",
+];
+
+export function getRandomBronzePunchline(): string {
+  const idx = Math.floor(Math.random() * BRONZE_MESSAGES.length);
+  return BRONZE_MESSAGES[idx];
+}
+
+export const MID_TABLE_MESSAGES: string[] = [
+  "Bien au chaud au milieu du classement, ni vu ni connu.",
+  "Une solide performance de ventre mou, ça force le respect.",
+  "Ni champion, ni cuillère de bois : l'art parfait de la discrétion.",
+  "Au cœur du peloton, personne ne t'attendait là mais t'es là.",
+  "La moyenne incarnée, un modèle de constance.",
+  "Une stratégie prudente : rester camouflé au milieu.",
+];
+
+export function getRandomMidTablePunchline(): string {
+  const idx = Math.floor(Math.random() * MID_TABLE_MESSAGES.length);
+  return MID_TABLE_MESSAGES[idx];
+}
+
+/**
+ * Returns a punchline tailored to the player's rank and context.
+ * If a seed string (e.g. player id) is provided, the choice is stable.
+ */
+export function getPlayerRankingPunchline(
+  rank: number,
+  totalPlayers: number,
+  seed?: string
+): string {
+  const getIndex = (listLength: number) => {
+    if (!seed) return Math.floor(Math.random() * listLength);
+    let hash = 0;
+    for (let i = 0; i < seed.length; i++) {
+      hash = (hash << 5) - hash + seed.charCodeAt(i);
+      hash |= 0;
+    }
+    return Math.abs(hash) % listLength;
+  };
+
+  if (rank === 1) {
+    return LEADER_FLATTERING_MESSAGES[getIndex(LEADER_FLATTERING_MESSAGES.length)];
+  }
+
+  if (rank === 2) {
+    return RUNNER_UP_MESSAGES[getIndex(RUNNER_UP_MESSAGES.length)];
+  }
+
+  if (rank === 3 && totalPlayers >= 3) {
+    return BRONZE_MESSAGES[getIndex(BRONZE_MESSAGES.length)];
+  }
+
+  if (totalPlayers > 2 && rank === totalPlayers) {
+    return LAST_PLACE_BITING_MESSAGES[getIndex(LAST_PLACE_BITING_MESSAGES.length)];
+  }
+
+  return MID_TABLE_MESSAGES[getIndex(MID_TABLE_MESSAGES.length)];
+}
+

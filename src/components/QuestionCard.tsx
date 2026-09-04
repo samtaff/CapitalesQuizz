@@ -12,6 +12,10 @@ import {
   MapPin,
   SkipForward,
   Trophy,
+  Clock,
+  Sparkles,
+  Users,
+  X,
 } from 'lucide-react';
 import {
   GameQuestion,
@@ -28,10 +32,13 @@ import {
   setPlayerMode,
   showRoundMap,
   submitPlayerAnswer,
+  submitTimeoutAnswer,
   nextRoundOrEnd,
+  showLeaderboard,
 } from '../services/gameService';
 import { sounds } from '../utils/soundEffects';
 import { FlagImage } from './FlagImage';
+import { WorldMap } from './WorldMap';
 import {
   getRandomSuccessPunchline,
   getRandomFailurePunchline,
@@ -62,7 +69,26 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
   const isHost = party.hostId === currentPlayerId;
   const currentPlayer = party.players?.[currentPlayerId];
 
+  // Duration for this round
+  const roundDuration = party.roundDuration || 20;
+
+  // Chacun son chrono : chaque joueur dispose de son propre chrono dès l'affichage de la question
+  const playerRoundStartRef = useRef<number>(Date.now());
+
+  const computeTimeLeft = () => {
+    if (currentPlayer?.currentAnswer) return 0;
+    const elapsed = Math.floor((Date.now() - playerRoundStartRef.current) / 1000);
+    return Math.max(0, Math.min(roundDuration, roundDuration - elapsed));
+  };
+
+  const [timeLeft, setTimeLeft] = useState<number>(() => {
+    if (currentPlayer?.currentAnswer) return 0;
+    return roundDuration;
+  });
+  const lastTickRef = useRef<number>(-1);
+
   // Local states
+  const [showMapOverlay, setShowMapOverlay] = useState(false);
   const [selectedMode, setSelectedMode] = useState<ResponseMode | null>(
     currentPlayer?.selectedMode || null
   );
@@ -81,8 +107,16 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
 
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Sync / Reset on new question round
+  // Players list and answered counts
+  const playersList = Object.values(party.players || {}) as Player[];
+  const answeredCount = playersList.filter((p) => Boolean(p.currentAnswer)).length;
+  const totalPlayers = playersList.length;
+  const allAnswered = totalPlayers > 0 && answeredCount === totalPlayers;
+  const alreadyAnswered = Boolean(currentPlayer?.currentAnswer);
+
+  // Sync / Reset on new question round (Chacun son chrono démarre ici)
   useEffect(() => {
+    playerRoundStartRef.current = Date.now();
     setSelectedMode(currentPlayer?.selectedMode || null);
     setCashInput('');
     setHasSubmittedLocally(false);
@@ -91,9 +125,63 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
     setSubmittedAnswerText('');
     setActivePunchline('');
     setLocalFeedback({ status: null, message: '', points: 0 });
+    setShowMapOverlay(false);
+    lastTickRef.current = -1;
+    setTimeLeft(roundDuration);
   }, [question.countryId, party.currentRoundIndex]);
 
-  const alreadyAnswered = Boolean(currentPlayer?.currentAnswer);
+  // Timer interval ticking every 250ms (compte uniquement pour ce joueur)
+  useEffect(() => {
+    if (party.status !== 'question') return;
+    if (alreadyAnswered || hasSubmittedLocally) return;
+
+    const interval = setInterval(() => {
+      const remaining = computeTimeLeft();
+      setTimeLeft(remaining);
+
+      // Play tick sound when <= 5s if user hasn't answered yet
+      if (
+        remaining <= 5 &&
+        remaining > 0 &&
+        lastTickRef.current !== remaining &&
+        !alreadyAnswered &&
+        !hasSubmittedLocally
+      ) {
+        lastTickRef.current = remaining;
+        sounds.playCountdownTick();
+      }
+    }, 250);
+
+    return () => clearInterval(interval);
+  }, [party.status, alreadyAnswered, hasSubmittedLocally, roundDuration]);
+
+  // Handle timeout when this player's time runs out (0 seconds)
+  useEffect(() => {
+    if (party.status !== 'question') return;
+
+    if (timeLeft === 0 && !hasSubmittedLocally && !alreadyAnswered) {
+      setHasSubmittedLocally(true);
+      sounds.playTimeout();
+      const punchline = getRandomFailurePunchline();
+      setActivePunchline(punchline);
+      setFlashColor('red');
+      setLocalFeedback({
+        status: 'wrong',
+        message: punchline,
+        points: 0,
+      });
+
+      // Soumet le timeout uniquement pour CE joueur
+      submitTimeoutAnswer(party.code, currentPlayerId);
+    }
+  }, [
+    timeLeft,
+    party.status,
+    hasSubmittedLocally,
+    alreadyAnswered,
+    party.code,
+    currentPlayerId,
+  ]);
 
   // Difficulty accent theme
   const difficultyTheme = {
@@ -165,6 +253,10 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
     setActivePunchline(punchline);
     setFlashColor(isCorrect ? 'green' : 'red');
 
+    const elapsedSeconds = party.roundStartTime
+      ? Math.max(1, Math.min(roundDuration, Math.round((Date.now() - party.roundStartTime) / 1000)))
+      : Math.max(1, roundDuration - timeLeft);
+
     const answerRecord: PlayerRoundAnswer = {
       mode: 'cash',
       answer: answerText,
@@ -174,7 +266,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
       levenshteinDistance: evaluation.distance,
       punchline,
       answeredAt: Date.now(),
-      timeTaken: 0,
+      timeTaken: elapsedSeconds,
     };
 
     if (evaluation.distance === 0) {
@@ -229,6 +321,10 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
     setActivePunchline(punchline);
     setFlashColor(isCorrect ? 'green' : 'red');
 
+    const elapsedSeconds = party.roundStartTime
+      ? Math.max(1, Math.min(roundDuration, Math.round((Date.now() - party.roundStartTime) / 1000)))
+      : Math.max(1, roundDuration - timeLeft);
+
     const answerRecord: PlayerRoundAnswer = {
       mode: 'carre',
       answer: chosenCity,
@@ -237,7 +333,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
       pointsEarned: scoreResult.points,
       punchline,
       answeredAt: Date.now(),
-      timeTaken: 0,
+      timeTaken: elapsedSeconds,
     };
 
     if (isCorrect) {
@@ -259,19 +355,15 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
     await submitPlayerAnswer(party.code, currentPlayerId, answerRecord);
   };
 
-  const handleAdvanceToMap = async () => {
+  const handleAdvanceToMap = () => {
     sounds.playClick();
-    await showRoundMap(party.code);
+    setShowMapOverlay(true);
   };
 
   const handleSkipMap = async () => {
     sounds.playClick();
     await nextRoundOrEnd(party.code);
   };
-
-  const playersList = Object.values(party.players || {}) as Player[];
-  const answeredCount = playersList.filter((p) => p.currentAnswer).length;
-  const totalPlayers = playersList.length;
 
   return (
     <div className="w-full max-w-3xl mx-auto flex flex-col justify-between select-none px-2 sm:px-4 py-1 sm:py-2 min-h-[calc(100dvh-4.5rem)] max-h-[calc(100dvh-4.5rem)] overflow-hidden relative">
@@ -288,15 +380,52 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
         />
       )}
 
-      {/* Discreet multiplayer indicator (only when multiple players) */}
-      {totalPlayers > 1 && (
-        <div className="flex justify-end items-center mb-1 shrink-0">
-          <span className="text-[11px] text-white/70 font-semibold bg-white/10 px-2.5 py-0.5 rounded-full border border-white/10 flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span>{answeredCount}/{totalPlayers} ont répondu</span>
-          </span>
+      {/* Top Chronometer & Multiplayer Status Bar */}
+      <div className="w-full max-w-xl mx-auto flex items-center justify-between gap-2 px-2.5 py-1 mb-1 shrink-0 bg-white/5 backdrop-blur-md rounded-2xl border border-white/10 shadow-sm">
+        {/* Left: Synchronized Countdown Timer */}
+        <div
+          className={`flex items-center gap-1.5 px-3 py-1 rounded-xl border font-black text-xs sm:text-sm transition-all shadow-sm ${
+            timeLeft === 0
+              ? 'bg-rose-600/40 border-rose-500 text-rose-200 ring-2 ring-rose-500'
+              : timeLeft <= 5
+              ? 'bg-rose-500/30 border-rose-400 text-rose-200 animate-pulse ring-2 ring-rose-500/40'
+              : 'bg-white/10 border-white/15 text-white'
+          }`}
+        >
+          <Clock className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${timeLeft === 0 ? 'text-rose-400' : timeLeft <= 5 ? 'text-rose-400 animate-spin' : 'text-[#FB923C]'}`} />
+          <span>{timeLeft === 0 ? 'TIME' : `${timeLeft}s`}</span>
         </div>
-      )}
+
+        {/* Center: Fluid Progress Bar */}
+        <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden border border-white/15 mx-1">
+          <div
+            className={`h-full transition-all duration-300 rounded-full ${
+              timeLeft <= 5
+                ? 'bg-gradient-to-r from-rose-500 to-red-600'
+                : 'bg-gradient-to-r from-amber-400 to-[#FB923C]'
+            }`}
+            style={{
+              width: `${Math.max(0, Math.min(100, (timeLeft / roundDuration) * 100))}%`,
+            }}
+          />
+        </div>
+
+        {/* Right: Real-time Players Answered count */}
+        {totalPlayers > 1 ? (
+          <div className="flex items-center gap-1.5 bg-white/10 px-2.5 sm:px-3 py-1 rounded-xl border border-white/15 text-white/80 text-[11px] sm:text-xs font-bold shrink-0">
+            <span
+              className={`w-2 h-2 rounded-full ${
+                allAnswered ? 'bg-emerald-400' : 'bg-amber-400 animate-pulse'
+              }`}
+            />
+            <span>
+              {answeredCount}/{totalPlayers} <span className="hidden sm:inline">ont répondu</span>
+            </span>
+          </div>
+        ) : (
+          <div className="text-[11px] text-white/50 font-semibold px-2">Solo</div>
+        )}
+      </div>
 
       {/* ================= MAIN QUESTION PRESENTATION (Zero-scroll, FlagImage) ================= */}
       <main className="flex-1 flex flex-col items-center justify-center text-center my-auto py-1 shrink min-h-0">
@@ -349,190 +478,282 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
           const effectiveMode = currentAns?.mode || selectedMode || 'carre';
           const answeredCity = currentAns?.answer || submittedAnswerText || selectedCarreOption || '';
 
+          const isTimeout =
+            currentAns?.answer === 'TIME' ||
+            currentAns?.answer?.includes('TIME') ||
+            currentAns?.answer === 'Temps écoulé' ||
+            (!isCorrect && timeLeft === 0 && !submittedAnswerText && !selectedCarreOption && (localFeedback.status === 'wrong' || !currentAns));
+
           return (
             <motion.div
               initial={{ scale: 0.97, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               className="w-full max-w-xl flex flex-col items-center gap-2"
             >
-              {/* If Carre: show the 4 choices with pulse and highlights */}
-              {effectiveMode === 'carre' && (
-                <div className="grid grid-cols-2 gap-2 sm:gap-2.5 w-full">
-                  {question.options.map((option, idx) => {
-                    const shape = SHAPES[idx % SHAPES.length];
-                    const isCapital = option.toLowerCase().trim() === question.capital.toLowerCase().trim();
-                    const isSelected = (answeredCity || selectedCarreOption)?.toLowerCase().trim() === option.toLowerCase().trim();
+              {/* If Timeout: display dedicated TIME banner */}
+              {isTimeout ? (
+                <div className="w-full bg-rose-950/90 border-2 border-rose-500 rounded-2xl p-3 sm:p-4 flex flex-col items-center gap-2 text-center shadow-2xl backdrop-blur-md">
+                  {/* Big distinct TIME badge */}
+                  <div className="flex items-center gap-2 bg-rose-600/30 border-2 border-rose-400 ring-4 ring-rose-500/30 px-5 py-2 rounded-2xl shadow-lg animate-pulse">
+                    <Clock className="w-6 h-6 sm:w-7 sm:h-7 text-rose-300" />
+                    <span className="text-3xl sm:text-4xl font-black text-rose-100 tracking-widest uppercase">
+                      TIME !
+                    </span>
+                  </div>
 
-                    if (isCapital) {
-                      // Correct answer highlight with green pulse and clean stacked layout
-                      return (
-                        <div
-                          key={option}
-                          className="bg-emerald-600 border-2 border-emerald-300 ring-4 ring-emerald-400/80 shadow-2xl scale-[1.02] animate-pulse rounded-xl sm:rounded-2xl px-2.5 py-2 sm:py-2.5 flex flex-col items-center justify-center text-center shadow-emerald-950/60"
-                        >
-                          <span className="text-xs sm:text-sm md:text-base font-black text-white uppercase tracking-wide leading-tight break-words text-center w-full">
-                            {option}
-                          </span>
-                          <span className="inline-flex items-center gap-1 bg-emerald-950/90 text-emerald-300 text-[10px] sm:text-[11px] px-2 py-0.5 rounded-full border border-emerald-400/40 mt-1 font-bold shrink-0">
-                            <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                            {isSelected ? `+${points} pts` : 'Bonne réponse'}
-                          </span>
-                        </div>
-                      );
-                    }
+                  <p className="text-xs sm:text-sm text-rose-200 font-extrabold uppercase tracking-wide">
+                    Temps écoulé — Pas de réponse dans le temps imparti (0 pt)
+                  </p>
 
-                    if (isSelected && !isCapital) {
-                      // Wrong selection: pulse + soft red with clean stacked layout
-                      return (
-                        <div
-                          key={option}
-                          className="bg-rose-800/90 border-2 border-rose-400 ring-4 ring-rose-400/50 shadow-md rounded-xl sm:rounded-2xl px-2.5 py-2 sm:py-2.5 flex flex-col items-center justify-center text-center animate-pulse"
-                        >
-                          <span className="text-xs sm:text-sm md:text-base font-black text-rose-100 uppercase tracking-wide leading-tight line-through break-words text-center w-full">
-                            {option}
-                          </span>
-                          <span className="inline-flex items-center gap-1 bg-rose-950/90 text-rose-300 text-[10px] sm:text-[11px] px-2 py-0.5 rounded-full border border-rose-400/40 mt-1 font-bold shrink-0">
-                            <XCircle className="w-3 h-3 text-rose-400" />
-                            Votre choix
-                          </span>
-                        </div>
-                      );
-                    }
-
-                    // Other dimmed options
-                    return (
-                      <div
-                        key={option}
-                        className={`${shape.bgClass} opacity-25 grayscale-[60%] border border-white/10 rounded-xl sm:rounded-2xl px-2.5 py-2 sm:py-2.5 flex items-center justify-center text-center font-bold text-white/50 uppercase text-xs sm:text-sm pointer-events-none`}
-                      >
-                        <span className="break-words text-center leading-tight">{option}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              {/* If Cash: show text field and user input */}
-              {effectiveMode === 'cash' && (
-                <div className="w-full">
-                  <div
-                    className={`w-full rounded-xl px-3.5 py-2 border-2 flex items-center justify-between text-xs sm:text-sm font-black uppercase shadow-lg ${
-                      isCorrect
-                        ? 'bg-emerald-950/80 border-emerald-400 ring-4 ring-emerald-400/60 text-emerald-200 animate-pulse'
-                        : 'bg-rose-950/80 border-rose-400 ring-4 ring-rose-400/40 text-rose-200'
-                    }`}
-                  >
-                    <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                      <span className="text-white/60 text-[11px] font-bold uppercase shrink-0">Votre réponse :</span>
-                      <span className={`font-black truncate ${!isCorrect ? 'line-through text-rose-200' : 'text-emerald-200'}`}>
-                        {answeredCity || cashInput || 'Saisie validée'}
+                  {/* Reveal correct capital */}
+                  <div className="w-full bg-emerald-950/95 border-2 border-emerald-400 rounded-xl sm:rounded-2xl px-3 sm:px-4 py-2 flex items-center justify-between text-xs sm:text-sm shadow-xl">
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                      <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400 shrink-0" />
+                      <span className="text-emerald-200 font-extrabold uppercase text-[11px] sm:text-xs tracking-wide">
+                        La bonne réponse était :
                       </span>
                     </div>
-                    <span
-                      className={`inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md border shrink-0 ml-2 font-bold ${
-                        isCorrect
-                          ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
-                          : 'bg-rose-500/20 text-rose-300 border-rose-500/30'
-                      }`}
-                    >
-                      {isCorrect ? (
-                        <>
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                          +{points} pts
-                        </>
-                      ) : (
-                        <>
-                          <XCircle className="w-3.5 h-3.5 text-rose-400" />
-                          0 pt
-                        </>
-                      )}
+                    <span className="text-white font-black text-sm sm:text-base md:text-lg tracking-wider uppercase bg-emerald-600 px-3 py-1 rounded-lg border border-emerald-300 shadow-md">
+                      {question.capital}
                     </span>
                   </div>
-                </div>
-              )}
 
-              {/* Explicit banner for the correct answer when player made a mistake (works for BOTH Carré & Cash) */}
-              {!isCorrect && (
-                <div className="w-full bg-emerald-950/95 border-2 border-emerald-400 rounded-xl sm:rounded-2xl px-3 sm:px-4 py-2 flex items-center justify-between text-xs sm:text-sm shadow-xl">
-                  <div className="flex items-center gap-1.5 sm:gap-2">
-                    <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400 shrink-0" />
-                    <span className="text-emerald-200 font-extrabold uppercase text-[11px] sm:text-xs tracking-wide">
-                      La bonne réponse était :
-                    </span>
+                  {/* Punchline */}
+                  <div className="bg-black/40 border border-white/10 rounded-xl px-3.5 py-2 w-full">
+                    <p className="text-xs sm:text-sm text-white/95 font-semibold italic leading-relaxed">
+                      « {punchline} »
+                    </p>
                   </div>
-                  <span className="text-white font-black text-sm sm:text-base md:text-lg tracking-wider uppercase bg-emerald-600 px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-lg border border-emerald-300 shadow-md">
-                    {question.capital}
-                  </span>
                 </div>
-              )}
+              ) : (
+                /* Standard Answer feedback: Carré or Cash */
+                <>
+                  {/* If Carre: show the 4 choices with pulse and highlights */}
+                  {effectiveMode === 'carre' && (
+                    <div className="grid grid-cols-2 gap-2 sm:gap-2.5 w-full">
+                      {question.options.map((option, idx) => {
+                        const shape = SHAPES[idx % SHAPES.length];
+                        const isCapital = option.toLowerCase().trim() === question.capital.toLowerCase().trim();
+                        const isSelected = (answeredCity || selectedCarreOption)?.toLowerCase().trim() === option.toLowerCase().trim();
 
-              {/* Humor punchline banner and next actions */}
-              <div
-                className={`w-full rounded-2xl p-3 sm:p-3.5 border shadow-2xl relative overflow-hidden backdrop-blur-md flex flex-col gap-2 ${
-                  isCorrect
-                    ? 'bg-emerald-950/85 border-emerald-400/60'
-                    : 'bg-rose-950/85 border-rose-400/60'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    {status === 'correct' ? (
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                    ) : status === 'minor_error' ? (
-                      <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
-                    ) : (
-                      <XCircle className="w-4 h-4 text-rose-400 shrink-0" />
-                    )}
-                    <h3 className="text-xs sm:text-sm font-black text-white uppercase tracking-wide">
-                      {status === 'correct'
-                        ? 'Bonne réponse !'
-                        : status === 'minor_error'
-                        ? 'Accepté avec tolérance !'
-                        : 'Raté !'}
-                    </h3>
-                  </div>
+                        if (isCapital) {
+                          return (
+                            <div
+                              key={option}
+                              className="bg-emerald-600 border-2 border-emerald-300 ring-4 ring-emerald-400/80 shadow-2xl scale-[1.02] animate-pulse rounded-xl sm:rounded-2xl px-2.5 py-2 sm:py-2.5 flex flex-col items-center justify-center text-center shadow-emerald-950/60"
+                            >
+                              <span className="text-xs sm:text-sm md:text-base font-black text-white uppercase tracking-wide leading-tight break-words text-center w-full">
+                                {option}
+                              </span>
+                              <span className="inline-flex items-center gap-1 bg-emerald-950/90 text-emerald-300 text-[10px] sm:text-[11px] px-2 py-0.5 rounded-full border border-emerald-400/40 mt-1 font-bold shrink-0">
+                                <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                                {isSelected ? `+${points} pts` : 'Bonne réponse'}
+                              </span>
+                            </div>
+                          );
+                        }
 
+                        if (isSelected && !isCapital) {
+                          return (
+                            <div
+                              key={option}
+                              className="bg-rose-800/90 border-2 border-rose-400 ring-4 ring-rose-400/50 shadow-md rounded-xl sm:rounded-2xl px-2.5 py-2 sm:py-2.5 flex flex-col items-center justify-center text-center animate-pulse"
+                            >
+                              <span className="text-xs sm:text-sm md:text-base font-black text-rose-100 uppercase tracking-wide leading-tight line-through break-words text-center w-full">
+                                {option}
+                              </span>
+                              <span className="inline-flex items-center gap-1 bg-rose-950/90 text-rose-300 text-[10px] sm:text-[11px] px-2 py-0.5 rounded-full border border-rose-400/40 mt-1 font-bold shrink-0">
+                                <XCircle className="w-3 h-3 text-rose-400" />
+                                Votre choix
+                              </span>
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <div
+                            key={option}
+                            className={`${shape.bgClass} opacity-25 grayscale-[60%] border border-white/10 rounded-xl sm:rounded-2xl px-2.5 py-2 sm:py-2.5 flex items-center justify-center text-center font-bold text-white/50 uppercase text-xs sm:text-sm pointer-events-none`}
+                          >
+                            <span className="break-words text-center leading-tight">{option}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* If Cash: show text field and user input */}
+                  {effectiveMode === 'cash' && (
+                    <div className="w-full">
+                      <div
+                        className={`w-full rounded-xl px-3.5 py-2 border-2 flex items-center justify-between text-xs sm:text-sm font-black uppercase shadow-lg ${
+                          isCorrect
+                            ? 'bg-emerald-950/80 border-emerald-400 ring-4 ring-emerald-400/60 text-emerald-200 animate-pulse'
+                            : 'bg-rose-950/80 border-rose-400 ring-4 ring-rose-400/40 text-rose-200'
+                        }`}
+                      >
+                        <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                          <span className="text-white/60 text-[11px] font-bold uppercase shrink-0">Votre réponse :</span>
+                          <span className={`font-black truncate ${!isCorrect ? 'line-through text-rose-200' : 'text-emerald-200'}`}>
+                            {answeredCity || cashInput || 'Saisie validée'}
+                          </span>
+                        </div>
+                        <span
+                          className={`inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md border shrink-0 ml-2 font-bold ${
+                            isCorrect
+                              ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                              : 'bg-rose-500/20 text-rose-300 border-rose-500/30'
+                          }`}
+                        >
+                          {isCorrect ? (
+                            <>
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                              +{points} pts
+                            </>
+                          ) : (
+                            <>
+                              <XCircle className="w-3.5 h-3.5 text-rose-400" />
+                              0 pt
+                            </>
+                          )}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Explicit banner for correct answer if wrong */}
+                  {!isCorrect && (
+                    <div className="w-full bg-emerald-950/95 border-2 border-emerald-400 rounded-xl sm:rounded-2xl px-3 sm:px-4 py-2 flex items-center justify-between text-xs sm:text-sm shadow-xl">
+                      <div className="flex items-center gap-1.5 sm:gap-2">
+                        <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400 shrink-0" />
+                        <span className="text-emerald-200 font-extrabold uppercase text-[11px] sm:text-xs tracking-wide">
+                          La bonne réponse était :
+                        </span>
+                      </div>
+                      <span className="text-white font-black text-sm sm:text-base md:text-lg tracking-wider uppercase bg-emerald-600 px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-lg border border-emerald-300 shadow-md">
+                        {question.capital}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Status header & punchline */}
                   <div
-                    className={`px-2 py-0.5 rounded-full text-[11px] font-black border ${
+                    className={`w-full rounded-2xl p-3 sm:p-3.5 border shadow-2xl relative overflow-hidden backdrop-blur-md flex flex-col gap-2 ${
                       isCorrect
-                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
-                        : 'bg-rose-500/20 text-rose-300 border-rose-500/40'
+                        ? 'bg-emerald-950/85 border-emerald-400/60'
+                        : 'bg-rose-950/85 border-rose-400/60'
                     }`}
                   >
-                    {isCorrect ? `+${points} pts` : '0 pt'}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        {status === 'correct' ? (
+                          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                        ) : status === 'minor_error' ? (
+                          <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+                        ) : (
+                          <XCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                        )}
+                        <h3 className="text-xs sm:text-sm font-black text-white uppercase tracking-wide">
+                          {status === 'correct'
+                            ? 'Bonne réponse !'
+                            : status === 'minor_error'
+                            ? 'Accepté avec tolérance !'
+                            : 'Raté !'}
+                        </h3>
+                      </div>
+
+                      <div
+                        className={`px-2 py-0.5 rounded-full text-[11px] font-black border ${
+                          isCorrect
+                            ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                            : 'bg-rose-500/20 text-rose-300 border-rose-500/40'
+                        }`}
+                      >
+                        {isCorrect ? `+${points} pts` : '0 pt'}
+                      </div>
+                    </div>
+
+                    <div className="bg-black/35 border border-white/10 rounded-xl px-3 py-2 text-center">
+                      <p className="text-xs sm:text-sm text-white/95 font-semibold italic leading-relaxed whitespace-normal break-words">
+                        « {punchline} »
+                      </p>
+                    </div>
                   </div>
-                </div>
+                </>
+              )}
 
-                {/* Random Humor Message */}
-                <div className="bg-black/35 border border-white/10 rounded-xl px-3 py-2 text-center">
-                  <p className="text-xs sm:text-sm text-white/95 font-semibold italic leading-relaxed whitespace-normal break-words">
-                    « {punchline} »
-                  </p>
-                </div>
-
-                {/* Advance actions */}
-                <div className="flex items-center justify-center gap-2 w-full pt-0.5">
+              {/* Action Buttons: Player chooses whether to view the map or continue */}
+              <div className="w-full rounded-2xl p-2.5 sm:p-3 border border-white/15 bg-white/5 backdrop-blur-md flex flex-col gap-2 shadow-xl">
+                {/* Main Choice Buttons: Voir la carte OU Question suivante */}
+                <div className="flex items-center justify-center gap-2 w-full">
                   <button
                     onClick={handleAdvanceToMap}
-                    className="flex-1 flex items-center justify-center gap-1.5 bg-[#FB923C] hover:brightness-110 text-[#1A1443] font-black text-xs sm:text-sm uppercase tracking-wider py-2 sm:py-2.5 rounded-xl shadow-lg transition-all cursor-pointer hover:scale-[1.02] active:scale-95"
+                    className="flex-1 flex items-center justify-center gap-1.5 bg-[#FB923C] hover:brightness-110 active:scale-95 text-[#1A1443] font-black text-xs sm:text-sm uppercase tracking-wider py-2.5 rounded-xl shadow-lg transition-all cursor-pointer hover:scale-[1.01]"
                   >
                     <MapPin className="w-4 h-4" />
-                    <span>Voir la carte</span>
+                    <span>Regarder la carte</span>
                   </button>
 
-                  <button
-                    onClick={handleSkipMap}
-                    className="flex-1 flex items-center justify-center gap-1.5 bg-white/20 hover:bg-white/30 text-white border border-white/20 font-black text-xs sm:text-sm uppercase tracking-wider py-2 sm:py-2.5 rounded-xl shadow-lg transition-all cursor-pointer hover:scale-[1.02] active:scale-95"
-                  >
-                    <SkipForward className="w-4 h-4" />
-                    <span>Passer</span>
-                  </button>
+                  {(isHost || totalPlayers <= 1) ? (
+                    <button
+                      onClick={handleSkipMap}
+                      className="flex-1 flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-black text-xs sm:text-sm uppercase tracking-wider py-2.5 rounded-xl shadow-lg transition-all cursor-pointer hover:scale-[1.01]"
+                    >
+                      <span>Question suivante</span>
+                      <ArrowRight className="w-4 h-4 stroke-[2.5]" />
+                    </button>
+                  ) : null}
                 </div>
+
+                {/* Multiplayer Status and badges */}
+                {totalPlayers > 1 && (
+                  <div className="w-full bg-black/25 border border-white/10 rounded-xl p-2 flex flex-col items-center gap-1.5">
+                    <div className="flex items-center justify-center gap-1.5 flex-wrap w-full">
+                      {playersList.map((p) => {
+                        const hasAnswered = Boolean(p.currentAnswer);
+                        return (
+                          <div
+                            key={p.id}
+                            className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border transition-all ${
+                              hasAnswered
+                                ? 'bg-emerald-500/20 border-emerald-400/50 text-emerald-200'
+                                : 'bg-white/5 border-white/20 text-white/60 animate-pulse'
+                            }`}
+                          >
+                            <div
+                              className="w-2 h-2 rounded-full"
+                              style={{ backgroundColor: p.color }}
+                            />
+                            <span className="truncate max-w-[100px]">{p.nickname}</span>
+                            <span className="font-bold">{hasAnswered ? '✓' : '⏳'}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <p className="text-[11px] text-white/60 text-center leading-tight">
+                      {allAnswered
+                        ? (isHost
+                            ? 'Tous les joueurs ont répondu ! Cliquez sur "Question suivante" pour continuer.'
+                            : "Tous les joueurs ont répondu ! En attente de l'hôte...")
+                        : `${answeredCount}/${totalPlayers} ont répondu. Chacun son chrono !`}
+                    </p>
+
+                    {isHost && !allAnswered && (
+                      <button
+                        onClick={handleSkipMap}
+                        className="text-[10px] text-white/40 hover:text-white/80 underline cursor-pointer transition-colors"
+                      >
+                        Forcer la suite (si un collègue est déconnecté)
+                      </button>
+                    )}
+                  </div>
+                )}
 
                 {onOpenLeaderboard && (
                   <button
                     onClick={onOpenLeaderboard}
-                    className="text-[11px] text-white/60 hover:text-white flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                    className="text-[11px] text-white/60 hover:text-white flex items-center justify-center gap-1 transition-colors cursor-pointer pt-0.5"
                   >
                     <Trophy className="w-3 h-3 text-[#FB923C]" />
                     <span>Consulter le classement</span>
@@ -698,6 +919,81 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
           </motion.div>
         )}
       </footer>
+
+      {/* World Map Interactive Modal Overlay — Chacun a le choix d'ouvrir ou fermer la carte */}
+      <AnimatePresence>
+        {showMapOverlay && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-[#140e36]/95 backdrop-blur-xl flex flex-col p-2 sm:p-4 select-none"
+          >
+            <div className="w-full max-w-4xl mx-auto flex items-center justify-between gap-2 p-2 sm:p-3 bg-white/10 border border-white/15 rounded-2xl mb-2 shrink-0 shadow-2xl">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-10 h-7 sm:w-12 sm:h-8 rounded-lg overflow-hidden border border-white/20 shrink-0 bg-white/5 flex items-center justify-center">
+                  <FlagImage
+                    countryId={question.countryId}
+                    countryName={question.country}
+                    className="w-full h-full object-cover"
+                    fallbackEmoji={question.flag}
+                  />
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-white font-black text-xs sm:text-sm md:text-base uppercase truncate">
+                    {question.country}
+                  </span>
+                  <div className="flex items-center gap-1.5 text-xs sm:text-sm">
+                    <span className="text-white/60 text-[10px] sm:text-xs uppercase font-bold">
+                      Capitale :
+                    </span>
+                    <span className="text-[#FB923C] font-black">{question.capital}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                {(isHost || totalPlayers <= 1) && (
+                  <button
+                    onClick={async () => {
+                      sounds.playClick();
+                      setShowMapOverlay(false);
+                      await nextRoundOrEnd(party.code);
+                    }}
+                    className="bg-[#FB923C] hover:brightness-110 active:scale-95 text-[#1A1443] font-black text-xs sm:text-sm uppercase tracking-wider px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl shadow-lg transition-all cursor-pointer flex items-center gap-1.5"
+                    title="Passer à la question suivante"
+                  >
+                    <span>Question suivante</span>
+                    <ArrowRight className="w-4 h-4 stroke-[2.5]" />
+                  </button>
+                )}
+
+                <button
+                  onClick={() => {
+                    sounds.playClick();
+                    setShowMapOverlay(false);
+                  }}
+                  className="bg-white/15 hover:bg-white/25 active:scale-95 text-white font-bold text-xs sm:text-sm uppercase tracking-wider px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl border border-white/20 transition-all cursor-pointer flex items-center gap-1.5"
+                >
+                  <X className="w-4 h-4" />
+                  <span>Fermer la carte</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="w-full max-w-4xl mx-auto flex-1 flex flex-col min-h-0 rounded-2xl overflow-hidden border border-white/15 shadow-2xl">
+              <WorldMap
+                countryId={question.countryId}
+                countryName={question.country}
+                capitalName={question.capital}
+                flag={question.flag}
+                difficulty={question.difficulty}
+                coordinates={question.coordinates}
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

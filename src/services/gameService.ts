@@ -228,7 +228,7 @@ export async function submitTimeoutAnswer(
 ): Promise<void> {
   const timeoutAnswer: PlayerRoundAnswer = {
     mode: 'carre',
-    answer: 'Temps écoulé',
+    answer: 'TIME',
     isCorrect: false,
     scoreFactor: 0,
     pointsEarned: 0,

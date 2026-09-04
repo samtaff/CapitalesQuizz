@@ -122,6 +122,33 @@ class SoundManager {
   }
 
   /**
+   * Son de temps écoulé / TIME (buzzer double bien distinct)
+   */
+  playTimeout() {
+    const ctx = this.getContext();
+    if (!ctx) return;
+    try {
+      const playBuzzer = (delay: number) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(190, ctx.currentTime + delay);
+        osc.frequency.linearRampToValueAtTime(130, ctx.currentTime + delay + 0.22);
+
+        gain.gain.setValueAtTime(0.16, ctx.currentTime + delay);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.24);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(ctx.currentTime + delay);
+        osc.stop(ctx.currentTime + delay + 0.24);
+      };
+      playBuzzer(0);
+      playBuzzer(0.26);
+    } catch (e) {}
+  }
+
+  /**
    * Son de tic-tac pour les 5 dernières secondes
    */
   playCountdownTick() {

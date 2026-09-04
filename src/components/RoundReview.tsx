@@ -74,6 +74,11 @@ export const RoundReview: React.FC<RoundReviewProps> = ({
                       <CheckCircle className="w-3 h-3 text-emerald-400" />
                       <span>+{roundAnswer.pointsEarned} pts</span>
                     </>
+                  ) : roundAnswer.answer === 'TIME' || roundAnswer.answer?.includes('TIME') ? (
+                    <>
+                      <XCircle className="w-3 h-3 text-rose-400" />
+                      <span>TIME (0 pt)</span>
+                    </>
                   ) : (
                     <>
                       <XCircle className="w-3 h-3 text-rose-400" />
