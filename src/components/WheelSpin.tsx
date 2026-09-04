@@ -166,7 +166,7 @@ export const WheelSpin: React.FC<WheelSpinProps> = ({
               </span>
             </div>
             <p className="text-white/60 text-xs font-semibold">
-              Manche {party.currentRoundIndex + 1} sur {party.totalRounds} • {eligibleIds.length} joueur{eligibleIds.length > 1 ? 's' : ''} en lice
+              Manche {party.currentRoundIndex + 1} sur {party.totalRounds} ({party.totalRounds % 2 === 0 ? 'Paire' : 'Impaire'}) • {eligibleIds.length} joueur{eligibleIds.length > 1 ? 's' : ''} en lice
             </p>
           </div>
         </div>

@@ -182,6 +182,116 @@ export const COUNTRIES_DATABASE: CountryItem[] = [
     coordinates: { lat: 37.5665, lng: 126.978 },
     acceptableAnswers: ['Seoul', 'Séoul'],
   },
+  {
+    id: 'BE',
+    country: 'Belgique',
+    capital: 'Bruxelles',
+    flag: '🇧🇪',
+    difficulty: 'facile',
+    distractors: ['Anvers', 'Liège', 'Gand'],
+    coordinates: { lat: 50.8503, lng: 4.3517 },
+    acceptableAnswers: ['Bruxelles', 'Brussels'],
+  },
+  {
+    id: 'NL',
+    country: 'Pays-Bas',
+    capital: 'Amsterdam',
+    flag: '🇳🇱',
+    difficulty: 'facile',
+    distractors: ['Rotterdam', 'La Haye', 'Utrecht'],
+    coordinates: { lat: 52.3676, lng: 4.9041 },
+    acceptableAnswers: ['Amsterdam'],
+  },
+  {
+    id: 'SE',
+    country: 'Suède',
+    capital: 'Stockholm',
+    flag: '🇸🇪',
+    difficulty: 'facile',
+    distractors: ['Göteborg', 'Malmö', 'Uppsala'],
+    coordinates: { lat: 59.3293, lng: 18.0686 },
+    acceptableAnswers: ['Stockholm'],
+  },
+  {
+    id: 'DK',
+    country: 'Danemark',
+    capital: 'Copenhague',
+    flag: '🇩🇰',
+    difficulty: 'facile',
+    distractors: ['Aarhus', 'Odense', 'Aalborg'],
+    coordinates: { lat: 55.6761, lng: 12.5683 },
+    acceptableAnswers: ['Copenhague', 'Copenhagen'],
+  },
+  {
+    id: 'AT',
+    country: 'Autriche',
+    capital: 'Vienne',
+    flag: '🇦🇹',
+    difficulty: 'facile',
+    distractors: ['Salzbourg', 'Graz', 'Innsbruck'],
+    coordinates: { lat: 48.2082, lng: 16.3738 },
+    acceptableAnswers: ['Vienne', 'Vienna'],
+  },
+  {
+    id: 'DZ',
+    country: 'Algérie',
+    capital: 'Alger',
+    flag: '🇩🇿',
+    difficulty: 'facile',
+    distractors: ['Oran', 'Constantine', 'Annaba'],
+    coordinates: { lat: 36.7538, lng: 3.0588 },
+    acceptableAnswers: ['Alger', 'Algiers'],
+  },
+  {
+    id: 'TN',
+    country: 'Tunisie',
+    capital: 'Tunis',
+    flag: '🇹🇳',
+    difficulty: 'facile',
+    distractors: ['Sousse', 'Sfax', 'Bizerte'],
+    coordinates: { lat: 36.8065, lng: 10.1815 },
+    acceptableAnswers: ['Tunis'],
+  },
+  {
+    id: 'CU',
+    country: 'Cuba',
+    capital: 'La Havane',
+    flag: '🇨🇺',
+    difficulty: 'facile',
+    distractors: ['Santiago de Cuba', 'Varadero', 'Camagüey'],
+    coordinates: { lat: 23.1136, lng: -82.3666 },
+    acceptableAnswers: ['La Havane', 'Havane', 'Havana'],
+  },
+  {
+    id: 'CZ',
+    country: 'Tchéquie',
+    capital: 'Prague',
+    flag: '🇨🇿',
+    difficulty: 'facile',
+    distractors: ['Brno', 'Ostrava', 'Plzeň'],
+    coordinates: { lat: 50.0755, lng: 14.4378 },
+    acceptableAnswers: ['Prague', 'Praha'],
+  },
+  {
+    id: 'HU',
+    country: 'Hongrie',
+    capital: 'Budapest',
+    flag: '🇭🇺',
+    difficulty: 'facile',
+    distractors: ['Debrecen', 'Szeged', 'Pécs'],
+    coordinates: { lat: 47.4979, lng: 19.0402 },
+    acceptableAnswers: ['Budapest'],
+  },
+  {
+    id: 'LU',
+    country: 'Luxembourg',
+    capital: 'Luxembourg',
+    flag: '🇱🇺',
+    difficulty: 'facile',
+    distractors: ['Esch-sur-Alzette', 'Differdange', 'Dudelange'],
+    coordinates: { lat: 49.6116, lng: 6.1319 },
+    acceptableAnswers: ['Luxembourg'],
+  },
 
   // ================= MOYEN =================
   {
@@ -363,6 +473,176 @@ export const COUNTRIES_DATABASE: CountryItem[] = [
     distractors: ['Casablanca', 'Marrakech', 'Tanger'],
     coordinates: { lat: 34.0209, lng: -6.8416 },
     acceptableAnswers: ['Rabat'],
+  },
+  {
+    id: 'RO',
+    country: 'Roumanie',
+    capital: 'Bucarest',
+    flag: '🇷🇴',
+    difficulty: 'moyen',
+    distractors: ['Cluj-Napoca', 'Timișoara', 'Iași'],
+    coordinates: { lat: 44.4268, lng: 26.1025 },
+    acceptableAnswers: ['Bucarest', 'Bucharest'],
+  },
+  {
+    id: 'BG',
+    country: 'Bulgarie',
+    capital: 'Sofia',
+    flag: '🇧🇬',
+    difficulty: 'moyen',
+    distractors: ['Plovdiv', 'Varna', 'Bourgas'],
+    coordinates: { lat: 42.6977, lng: 23.3219 },
+    acceptableAnswers: ['Sofia'],
+  },
+  {
+    id: 'RS',
+    country: 'Serbie',
+    capital: 'Belgrade',
+    flag: '🇷🇸',
+    difficulty: 'moyen',
+    distractors: ['Novi Sad', 'Niš', 'Kragujevac'],
+    coordinates: { lat: 44.7866, lng: 20.4489 },
+    acceptableAnswers: ['Belgrade'],
+  },
+  {
+    id: 'AL',
+    country: 'Albanie',
+    capital: 'Tirana',
+    flag: '🇦🇱',
+    difficulty: 'moyen',
+    distractors: ['Durrës', 'Vlora', 'Shkodra'],
+    coordinates: { lat: 41.3275, lng: 19.8187 },
+    acceptableAnswers: ['Tirana'],
+  },
+  {
+    id: 'VN',
+    country: 'Vietnam',
+    capital: 'Hanoï',
+    flag: '🇻🇳',
+    difficulty: 'moyen',
+    distractors: ['Hô Chi Minh-Ville', 'Da Nang', 'Hué'],
+    coordinates: { lat: 21.0285, lng: 105.8542 },
+    acceptableAnswers: ['Hanoi', 'Hanoï'],
+  },
+  {
+    id: 'PH',
+    country: 'Philippines',
+    capital: 'Manille',
+    flag: '🇵🇭',
+    difficulty: 'moyen',
+    distractors: ['Cebu', 'Davao', 'Quezon City'],
+    coordinates: { lat: 14.5995, lng: 120.9842 },
+    acceptableAnswers: ['Manille', 'Manila'],
+  },
+  {
+    id: 'ID',
+    country: 'Indonésie',
+    capital: 'Jakarta',
+    flag: '🇮🇩',
+    difficulty: 'moyen',
+    distractors: ['Surabaya', 'Bandung', 'Bali'],
+    coordinates: { lat: -6.2088, lng: 106.8456 },
+    acceptableAnswers: ['Jakarta', 'Nusantara'],
+  },
+  {
+    id: 'MY',
+    country: 'Malaisie',
+    capital: 'Kuala Lumpur',
+    flag: '🇲🇾',
+    difficulty: 'moyen',
+    distractors: ['George Town', 'Johor Bahru', 'Putrajaya'],
+    coordinates: { lat: 3.139, lng: 101.6869 },
+    acceptableAnswers: ['Kuala Lumpur'],
+  },
+  {
+    id: 'ET',
+    country: 'Éthiopie',
+    capital: 'Addis-Abeba',
+    flag: '🇪🇹',
+    difficulty: 'moyen',
+    distractors: ['Dire Dawa', 'Gondar', 'Hawassa'],
+    coordinates: { lat: 9.03, lng: 38.74 },
+    acceptableAnswers: ['Addis Abeba', 'Addis-Abeba', 'Addis Ababa'],
+  },
+  {
+    id: 'GH',
+    country: 'Ghana',
+    capital: 'Accra',
+    flag: '🇬🇭',
+    difficulty: 'moyen',
+    distractors: ['Kumasi', 'Tamale', 'Sekondi'],
+    coordinates: { lat: 5.6037, lng: -0.187 },
+    acceptableAnswers: ['Accra'],
+  },
+  {
+    id: 'CM',
+    country: 'Cameroun',
+    capital: 'Yaoundé',
+    flag: '🇨🇲',
+    difficulty: 'moyen',
+    distractors: ['Douala', 'Garoua', 'Bafoussam'],
+    coordinates: { lat: 3.848, lng: 11.5021 },
+    acceptableAnswers: ['Yaounde', 'Yaoundé'],
+  },
+  {
+    id: 'JO',
+    country: 'Jordanie',
+    capital: 'Amman',
+    flag: '🇯🇴',
+    difficulty: 'moyen',
+    distractors: ['Zarqa', 'Irbid', 'Aqaba'],
+    coordinates: { lat: 31.9454, lng: 35.9284 },
+    acceptableAnswers: ['Amman'],
+  },
+  {
+    id: 'LB',
+    country: 'Liban',
+    capital: 'Beyrouth',
+    flag: '🇱🇧',
+    difficulty: 'moyen',
+    distractors: ['Tripoli', 'Sidon', 'Tyr'],
+    coordinates: { lat: 33.8938, lng: 35.5018 },
+    acceptableAnswers: ['Beyrouth', 'Beirut'],
+  },
+  {
+    id: 'CR',
+    country: 'Costa Rica',
+    capital: 'San José',
+    flag: '🇨🇷',
+    difficulty: 'moyen',
+    distractors: ['Alajuela', 'Cartago', 'Heredia'],
+    coordinates: { lat: 9.9281, lng: -84.0907 },
+    acceptableAnswers: ['San Jose', 'San José'],
+  },
+  {
+    id: 'PA',
+    country: 'Panama',
+    capital: 'Panama',
+    flag: '🇵🇦',
+    difficulty: 'moyen',
+    distractors: ['Colón', 'David', 'Santiago'],
+    coordinates: { lat: 8.9824, lng: -79.5199 },
+    acceptableAnswers: ['Panama', 'Ciudad de Panama'],
+  },
+  {
+    id: 'VE',
+    country: 'Venezuela',
+    capital: 'Caracas',
+    flag: '🇻🇪',
+    difficulty: 'moyen',
+    distractors: ['Maracaibo', 'Valencia', 'Barquisimeto'],
+    coordinates: { lat: 10.4806, lng: -66.9036 },
+    acceptableAnswers: ['Caracas'],
+  },
+  {
+    id: 'PY',
+    country: 'Paraguay',
+    capital: 'Asunción',
+    flag: '🇵🇾',
+    difficulty: 'moyen',
+    distractors: ['Ciudad del Este', 'Encarnación', 'Luque'],
+    coordinates: { lat: -25.2637, lng: -57.5759 },
+    acceptableAnswers: ['Asuncion', 'Asunción'],
   },
 
   // ================= DIFFICILE =================
@@ -546,6 +826,166 @@ export const COUNTRIES_DATABASE: CountryItem[] = [
     coordinates: { lat: 6.4969, lng: 2.6289 },
     acceptableAnswers: ['Porto Novo', 'Porto-Novo'],
   },
+  {
+    id: 'PK',
+    country: 'Pakistan',
+    capital: 'Islamabad',
+    flag: '🇵🇰',
+    difficulty: 'difficile',
+    distractors: ['Karachi', 'Lahore', 'Peshawar'],
+    coordinates: { lat: 33.6844, lng: 73.0479 },
+    acceptableAnswers: ['Islamabad'],
+  },
+  {
+    id: 'BD',
+    country: 'Bangladesh',
+    capital: 'Dacca',
+    flag: '🇧🇩',
+    difficulty: 'difficile',
+    distractors: ['Chittagong', 'Khulna', 'Sylhet'],
+    coordinates: { lat: 23.8103, lng: 90.4125 },
+    acceptableAnswers: ['Dacca', 'Dhaka'],
+  },
+  {
+    id: 'UZ',
+    country: 'Ouzbékistan',
+    capital: 'Tachkent',
+    flag: '🇺🇿',
+    difficulty: 'difficile',
+    distractors: ['Samarcande', 'Boukhara', 'Namangan'],
+    coordinates: { lat: 41.2995, lng: 69.2401 },
+    acceptableAnswers: ['Tachkent', 'Tashkent'],
+  },
+  {
+    id: 'TJ',
+    country: 'Tadjikistan',
+    capital: 'Douchanbé',
+    flag: '🇹🇯',
+    difficulty: 'difficile',
+    distractors: ['Khodjent', 'Bokhtar', 'Koulob'],
+    coordinates: { lat: 38.5598, lng: 68.787 },
+    acceptableAnswers: ['Douchanbe', 'Douchanbé', 'Dushanbe'],
+  },
+  {
+    id: 'NP',
+    country: 'Népal',
+    capital: 'Katmandou',
+    flag: '🇳🇵',
+    difficulty: 'difficile',
+    distractors: ['Pokhara', 'Lalitpur', 'Biratnagar'],
+    coordinates: { lat: 27.7172, lng: 85.324 },
+    acceptableAnswers: ['Katmandou', 'Kathmandu'],
+  },
+  {
+    id: 'MG',
+    country: 'Madagascar',
+    capital: 'Antananarivo',
+    flag: '🇲🇬',
+    difficulty: 'difficile',
+    distractors: ['Toamasina', 'Antsirabe', 'Mahajanga'],
+    coordinates: { lat: -18.8792, lng: 47.5079 },
+    acceptableAnswers: ['Antananarivo', 'Tananarive'],
+  },
+  {
+    id: 'RW',
+    country: 'Rwanda',
+    capital: 'Kigali',
+    flag: '🇷🇼',
+    difficulty: 'difficile',
+    distractors: ['Butare', 'Gisenyi', 'Ruhengeri'],
+    coordinates: { lat: -1.9441, lng: 30.0619 },
+    acceptableAnswers: ['Kigali'],
+  },
+  {
+    id: 'UG',
+    country: 'Ouganda',
+    capital: 'Kampala',
+    flag: '🇺🇬',
+    difficulty: 'difficile',
+    distractors: ['Entebbe', 'Gulu', 'Jinja'],
+    coordinates: { lat: 0.3476, lng: 32.5825 },
+    acceptableAnswers: ['Kampala'],
+  },
+  {
+    id: 'ER',
+    country: 'Érythrée',
+    capital: 'Asmara',
+    flag: '🇪🇷',
+    difficulty: 'difficile',
+    distractors: ['Massaoua', 'Keren', 'Assab'],
+    coordinates: { lat: 15.3229, lng: 38.9251 },
+    acceptableAnswers: ['Asmara'],
+  },
+  {
+    id: 'SR',
+    country: 'Suriname',
+    capital: 'Paramaribo',
+    flag: '🇸🇷',
+    difficulty: 'difficile',
+    distractors: ['Lelydorp', 'Nieuw Nickerie', 'Moengo'],
+    coordinates: { lat: 5.852, lng: -55.2038 },
+    acceptableAnswers: ['Paramaribo'],
+  },
+  {
+    id: 'GY',
+    country: 'Guyana',
+    capital: 'Georgetown',
+    flag: '🇬🇾',
+    difficulty: 'difficile',
+    distractors: ['Linden', 'New Amsterdam', 'Bartica'],
+    coordinates: { lat: 6.8013, lng: -58.1551 },
+    acceptableAnswers: ['Georgetown'],
+  },
+  {
+    id: 'BZ',
+    country: 'Belize',
+    capital: 'Belmopan',
+    flag: '🇧🇿',
+    difficulty: 'difficile',
+    distractors: ['Belize City', 'San Ignacio', 'Orange Walk'],
+    coordinates: { lat: 17.251, lng: -88.759 },
+    acceptableAnswers: ['Belmopan'],
+  },
+  {
+    id: 'TT',
+    country: 'Trinité-et-Tobago',
+    capital: "Port-d'Espagne",
+    flag: '🇹🇹',
+    difficulty: 'difficile',
+    distractors: ['San Fernando', 'Chaguanas', 'Scarborough'],
+    coordinates: { lat: 10.6549, lng: -61.5019 },
+    acceptableAnswers: ["Port d'Espagne", "Port-d'Espagne", 'Port of Spain'],
+  },
+  {
+    id: 'GE',
+    country: 'Géorgie',
+    capital: 'Tbilissi',
+    flag: '🇬🇪',
+    difficulty: 'difficile',
+    distractors: ['Batoumi', 'Koutaïssi', 'Roustavi'],
+    coordinates: { lat: 41.7151, lng: 44.8271 },
+    acceptableAnswers: ['Tbilissi', 'Tbilisi'],
+  },
+  {
+    id: 'AM',
+    country: 'Arménie',
+    capital: 'Erevan',
+    flag: '🇦🇲',
+    difficulty: 'difficile',
+    distractors: ['Gyumri', 'Vanadzor', 'Vagharshapat'],
+    coordinates: { lat: 40.1792, lng: 44.4991 },
+    acceptableAnswers: ['Erevan', 'Yerevan'],
+  },
+  {
+    id: 'AZ',
+    country: 'Azerbaïdjan',
+    capital: 'Bakou',
+    flag: '🇦🇿',
+    difficulty: 'difficile',
+    distractors: ['Gandja', 'Sumqayıt', 'Mingachevir'],
+    coordinates: { lat: 40.4093, lng: 49.8671 },
+    acceptableAnswers: ['Bakou', 'Baku'],
+  },
 ];
 
 /**
@@ -561,19 +1001,100 @@ export function shuffleArray<T>(array: T[]): T[] {
 }
 
 /**
- * Génère une liste de questions basée sur la difficulté choisie
+ * Génère une liste de questions basée sur la difficulté choisie.
+ * RÈGLE STRICTE DU SALON : Peu importe le mode de jeu choisi, aucun pays ne sort plus de 2 fois (max 2 occurrences).
  */
-export function generateQuestions(difficulty: 'facile' | 'moyen' | 'difficile' | 'mix', count: number = 5) {
-  let pool: CountryItem[];
+export function generateQuestions(
+  difficulty: 'facile' | 'moyen' | 'difficile' | 'mix',
+  count: number = 5
+) {
+  // 1. Définition du pool principal selon la difficulté
+  let primaryPool: CountryItem[];
   if (difficulty === 'mix') {
-    pool = [...COUNTRIES_DATABASE];
+    primaryPool = [...COUNTRIES_DATABASE];
   } else {
-    pool = COUNTRIES_DATABASE.filter((c) => c.difficulty === difficulty);
+    primaryPool = COUNTRIES_DATABASE.filter((c) => c.difficulty === difficulty);
   }
 
-  const selected = shuffleArray(pool).slice(0, count);
+  // Pool secondaire (autres difficultés) si count est très grand et nécessite plus de questions
+  const fallbackPool = COUNTRIES_DATABASE.filter(
+    (c) => !primaryPool.some((p) => p.id === c.id)
+  );
 
-  return selected.map((item) => {
+  const selectedItems: CountryItem[] = [];
+  const countryCounts = new Map<string, number>();
+
+  // Règle formelle : Un même pays ne peut sortir que 2 fois maximum au cours du salon
+  const canPick = (item: CountryItem): boolean => {
+    const current = countryCounts.get(item.id) || 0;
+    return current < 2;
+  };
+
+  const pick = (item: CountryItem) => {
+    selectedItems.push(item);
+    countryCounts.set(item.id, (countryCounts.get(item.id) || 0) + 1);
+  };
+
+  // Passe 1 : Sélectionner des pays uniques dans le pool principal (1ère apparition)
+  const shuffledPrimary1 = shuffleArray(primaryPool);
+  for (const item of shuffledPrimary1) {
+    if (selectedItems.length >= count) break;
+    if (canPick(item)) {
+      pick(item);
+    }
+  }
+
+  // Passe 2 : Si count > taille du pool, autoriser une 2e apparition (max 2 fois respecté)
+  if (selectedItems.length < count) {
+    const shuffledPrimary2 = shuffleArray(primaryPool);
+    for (const item of shuffledPrimary2) {
+      if (selectedItems.length >= count) break;
+      if (canPick(item)) {
+        pick(item);
+      }
+    }
+  }
+
+  // Passe 3 : Si count dépasse encore (très grande partie), puiser dans le fallbackPool (1ère apparition)
+  if (selectedItems.length < count) {
+    const shuffledFallback1 = shuffleArray(fallbackPool);
+    for (const item of shuffledFallback1) {
+      if (selectedItems.length >= count) break;
+      if (canPick(item)) {
+        pick(item);
+      }
+    }
+  }
+
+  // Passe 4 : Si besoin extrême, 2e apparition dans le fallbackPool (toujours max 2 fois)
+  if (selectedItems.length < count) {
+    const shuffledFallback2 = shuffleArray(fallbackPool);
+    for (const item of shuffledFallback2) {
+      if (selectedItems.length >= count) break;
+      if (canPick(item)) {
+        pick(item);
+      }
+    }
+  }
+
+  // Mélange espacé : si des pays sont présents 2 fois, on s'assure qu'ils ne se suivent pas
+  const finalOrdered: CountryItem[] = [];
+  const remaining = shuffleArray(selectedItems);
+
+  while (remaining.length > 0) {
+    const lastPicked = finalOrdered[finalOrdered.length - 1];
+    const candidateIdx = remaining.findIndex(
+      (item) => !lastPicked || item.id !== lastPicked.id
+    );
+
+    if (candidateIdx !== -1) {
+      finalOrdered.push(remaining.splice(candidateIdx, 1)[0]);
+    } else {
+      finalOrdered.push(remaining.pop()!);
+    }
+  }
+
+  return finalOrdered.map((item) => {
     const options = shuffleArray([item.capital, ...item.distractors]);
     return {
       countryId: item.id,

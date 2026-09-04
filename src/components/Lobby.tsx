@@ -282,28 +282,107 @@ export const Lobby: React.FC<LobbyProps> = ({
               </div>
             </div>
 
-            {/* Rounds selection */}
+            {/* Rounds selection with Paire / Impaire support */}
             <div>
-              <p className="text-xs uppercase tracking-widest text-white/60 mb-2 font-bold">
-                Nombre de manches
-              </p>
-              <div className="grid grid-cols-3 gap-2">
-                {[5, 10, 15].map((rounds) => {
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs uppercase tracking-widest text-white/60 font-bold flex items-center gap-1.5">
+                  <span>Nombre de manches</span>
+                </p>
+                <span
+                  className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase border ${
+                    party.totalRounds % 2 === 0
+                      ? 'bg-emerald-400/20 text-emerald-300 border-emerald-400/30'
+                      : 'bg-amber-400/20 text-amber-300 border-amber-400/30'
+                  }`}
+                >
+                  {party.totalRounds % 2 === 0 ? 'Paire' : 'Impaire'} ({party.totalRounds})
+                </span>
+              </div>
+
+              {/* Paire vs Impaire Tabs */}
+              <div className="flex items-center gap-1.5 p-1 bg-[#1A1443]/60 rounded-xl border border-white/10 mb-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (party.totalRounds % 2 !== 0) {
+                      handleRoundsChange(party.totalRounds + 1);
+                    }
+                  }}
+                  className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all cursor-pointer text-center ${
+                    party.totalRounds % 2 === 0
+                      ? 'bg-emerald-500 text-[#1A1443] shadow-md'
+                      : 'text-white/60 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  Paire
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (party.totalRounds % 2 === 0) {
+                      handleRoundsChange(Math.max(3, party.totalRounds - 1));
+                    }
+                  }}
+                  className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all cursor-pointer text-center ${
+                    party.totalRounds % 2 !== 0
+                      ? 'bg-amber-400 text-[#1A1443] shadow-md'
+                      : 'text-white/60 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  Impaire
+                </button>
+              </div>
+
+              {/* Preset buttons corresponding to current parity */}
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5 mb-2">
+                {(party.totalRounds % 2 === 0
+                  ? [4, 6, 8, 10, 12, 16]
+                  : [3, 5, 7, 9, 11, 15]
+                ).map((rounds) => {
                   const isSelected = party.totalRounds === rounds;
                   return (
                     <button
                       key={rounds}
+                      type="button"
                       onClick={() => handleRoundsChange(rounds)}
-                      className={`text-xs font-black uppercase tracking-wider py-2.5 px-3 rounded-xl border transition-all text-center cursor-pointer ${
+                      className={`text-xs font-black py-2 px-1 rounded-xl border transition-all text-center cursor-pointer ${
                         isSelected
                           ? 'bg-white text-[#1A1443] border-white shadow-md'
                           : 'bg-[#1A1443]/60 text-white/80 border-white/10 hover:bg-white/10'
                       }`}
                     >
-                      {rounds} manches
+                      {rounds}
                     </button>
                   );
                 })}
+              </div>
+
+              {/* Stepper for precise custom number */}
+              <div className="flex items-center justify-between bg-black/20 px-3 py-1.5 rounded-xl border border-white/10 text-xs">
+                <span className="text-white/60 font-semibold text-[11px]">
+                  {party.gameMode === 'wheel' ? 'Mode Roue :' : 'Réglage précis :'}
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleRoundsChange(Math.max(2, party.totalRounds - 1))}
+                    disabled={party.totalRounds <= 2}
+                    className="w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 active:scale-95 text-white font-black flex items-center justify-center disabled:opacity-30 cursor-pointer text-sm"
+                  >
+                    -
+                  </button>
+                  <span className="font-black text-white px-1.5 text-xs sm:text-sm">
+                    {party.totalRounds} manches
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleRoundsChange(Math.min(30, party.totalRounds + 1))}
+                    disabled={party.totalRounds >= 30}
+                    className="w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 active:scale-95 text-white font-black flex items-center justify-center disabled:opacity-30 cursor-pointer text-sm"
+                  >
+                    +
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -325,7 +404,7 @@ export const Lobby: React.FC<LobbyProps> = ({
             </div>
           </div>
           <span className="text-[11px] font-black uppercase bg-white/15 px-3 py-1 rounded-full border border-white/20">
-            {party.totalRounds} manches • {party.difficultySetting}
+            {party.totalRounds} manches ({party.totalRounds % 2 === 0 ? 'Paire' : 'Impaire'}) • {party.difficultySetting}
           </span>
         </div>
       )}
